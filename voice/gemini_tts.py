@@ -5,7 +5,8 @@ requests for generativelanguage.googleapis.com (saved as an environment network 
 
   python -I gemini_tts.py check                         # free call: is the key live?
   python -I gemini_tts.py voices OUT.json               # Extended Voice Library (no TTS quota)
-  python -I gemini_tts.py pair A B TEXT.txt OUTDIR [--style "..."] [--model gemini-3.8-flash-tts]
+  python -I gemini_tts.py pair A B TEXT.txt OUTDIR [--style "..."] [--style-b "..."] [--names a,b] [--model M]
+  python -I gemini_tts.py say VOICE TEXT.txt OUT.wav [--style "..."]   # narration + OUT_words.json
 
 `pair` makes ONE request with Gemini's two-speaker mode: voice A reads the text, then voice B reads
 the same text. It splits the result with Whisper word timings into OUTDIR/<A>.wav and OUTDIR/<B>.wav.
@@ -21,8 +22,9 @@ DAILY_LIMIT = int(os.environ.get("GEMINI_TTS_DAILY_LIMIT", "10"))
 DEFAULT_STYLE = ("Warm, intimate storyteller narrating a bittersweet animated short to one listener, quietly amused. "
                  "Use a slightly higher, brighter part of your range than usual, with lots of melodic movement: "
                  "lift into the key word of each line, then let every sentence fall all the way down and settle, "
-                 "almost into a soft creak. Brisk inside each phrase. Keep the pauses between sentences short, "
-                 "about half a second.")
+                 "almost into a soft creak. Unhurried but never slow, about 140 words a minute. Keep the pauses "
+                 "between sentences short, about half a second. Drop the pitch firmly on the last word of every "
+                 "sentence, like closing a book.")
 
 
 def http(method, url, body=None):
@@ -125,7 +127,10 @@ def split_by_text(wav_path, text, outA, outB):
     return cut
 
 
-def pair(a, b, text_file, outdir, style=DEFAULT_STYLE, model="gemini-3.8-flash-tts"):
+def pair(a, b, text_file, outdir, style=DEFAULT_STYLE, style_b=None, names=None, model="gemini-3.8-flash-tts"):
+    """One request, two takes. Same voice twice is fine: give each take its own style and file name."""
+    style_b = style_b or style
+    na, nb = (names.split(",") if names else (a, b))
     n = used_today()
     if n >= DAILY_LIMIT:
         print(f"refusing: {n}/{DAILY_LIMIT} TTS requests already used in the last 24 h")
@@ -135,28 +140,61 @@ def pair(a, b, text_file, outdir, style=DEFAULT_STYLE, model="gemini-3.8-flash-t
         "model": model,
         "input": [{"type": "user_input", "content": [
             {"type": "text", "text": text, "annotations": [{"type": "speech_metadata", "speaker": "A", "style": style}]},
-            {"type": "text", "text": text, "annotations": [{"type": "speech_metadata", "speaker": "B", "style": style}]},
+            {"type": "text", "text": text, "annotations": [{"type": "speech_metadata", "speaker": "B", "style": style_b}]},
         ]}],
         "response_format": {"type": "audio"},
         "generation_config": {"speech_config": {"speakers": [{"speaker": "A", "voice": a}, {"speaker": "B", "voice": b}]}},
     }
     t0 = time.time()
     code, d = http("POST", f"{API}/interactions", body)
-    log_request({"model": model, "voices": [a, b], "status": code})
+    log_request({"model": model, "voices": [a, b], "names": [na, nb], "status": code})
+    os.makedirs(outdir, exist_ok=True)
     if code != 200:
         print("TTS failed:", code, json.dumps(d)[:600])
         return 1
     audio = find_audio(d)
     if not audio:
         print("no audio in response; keys:", list(d)[:10])
-        json.dump(d, open(os.path.join(outdir, f"raw_{a}_{b}.json"), "w"))
+        json.dump(d, open(os.path.join(outdir, f"raw_{na}_{nb}.json"), "w"))
         return 1
-    os.makedirs(outdir, exist_ok=True)
-    both = os.path.join(outdir, f"pair_{a}_{b}.wav")
+    both = os.path.join(outdir, f"pair_{na}_{nb}.wav")
     open(both, "wb").write(audio)
-    cut = split_by_text(both, text, os.path.join(outdir, f"{a}.wav"), os.path.join(outdir, f"{b}.wav"))
-    print(f"{a} + {b}: {len(audio) / 48000:.1f} s of audio in {time.time() - t0:.1f} s, split at {cut:.2f} s "
+    cut = split_by_text(both, text, os.path.join(outdir, f"{na}.wav"), os.path.join(outdir, f"{nb}.wav"))
+    print(f"{na} + {nb}: {len(audio) / 48000:.1f} s of audio in {time.time() - t0:.1f} s, split at {cut:.2f} s "
           f"({used_today()}/{DAILY_LIMIT} requests used today)")
+    return 0
+
+
+def say(voice, text_file, out, style=DEFAULT_STYLE, model="gemini-3.8-flash-tts"):
+    """Single-speaker narration for production. Also writes OUT_words.json (Whisper word timings) for retiming scenes."""
+    n = used_today()
+    if n >= DAILY_LIMIT:
+        print(f"refusing: {n}/{DAILY_LIMIT} TTS requests already used in the last 24 h")
+        return 2
+    text = " ".join(open(text_file).read().split())
+    body = {"model": model,
+            "input": [{"type": "user_input", "content": [{"type": "text", "text": text,
+                       "annotations": [{"type": "speech_metadata", "style": style}]}]}],
+            "response_format": {"type": "audio"},
+            "generation_config": {"speech_config": [{"voice": voice}]}}
+    code, d = http("POST", f"{API}/interactions", body)
+    log_request({"model": model, "voices": [voice], "status": code, "say": os.path.basename(out)})
+    if code != 200:
+        print("TTS failed:", code, json.dumps(d)[:600])
+        return 1
+    audio = find_audio(d)
+    if not audio:
+        print("no audio in response")
+        return 1
+    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+    open(out, "wb").write(audio)
+    import librosa
+    from faster_whisper import WhisperModel
+    y, _ = librosa.load(out, sr=16000, mono=True)
+    segs, _ = WhisperModel("small.en", device="cpu", compute_type="int8").transcribe(y, language="en", word_timestamps=True)
+    words = [{"w": w.word.strip(), "s": round(w.start, 3), "e": round(w.end, 3)} for s_ in segs for w in s_.words]
+    json.dump(words, open(out[:-4] + "_words.json", "w"), indent=0)
+    print(f"{voice}: {len(y) / 16000:.1f} s, {len(words)} words -> {out} ({used_today()}/{DAILY_LIMIT} requests used today)")
     return 0
 
 
@@ -166,14 +204,14 @@ if __name__ == "__main__":
         sys.exit(check())
     if cmd == "voices":
         sys.exit(voices(sys.argv[2]))
-    if cmd == "pair":
+    if cmd in ("pair", "say"):
         args = sys.argv[2:]
         kw = {}
-        for flag in ("--style", "--model"):
+        for flag in ("--style", "--style-b", "--names", "--model"):
             if flag in args:
                 i = args.index(flag)
-                kw[flag[2:]] = args[i + 1]
+                kw[flag[2:].replace("-", "_")] = args[i + 1]
                 del args[i:i + 2]
-        sys.exit(pair(*args[:4], **kw))
+        sys.exit(pair(*args[:4], **kw) if cmd == "pair" else say(*args[:3], **kw))
     print(__doc__)
     sys.exit(2)

@@ -1,6 +1,6 @@
 # Voice match, 8 Nov 2026
 
-**Pick: `gemini-3.8-flash-tts`, voice `Algieba`, with the style prompt in `gemini_tts.py` (`DEFAULT_STYLE`).**
+**Pick: `gemini-3.8-flash-tts`, voice `Algieba`, with the round 3 take B prompt. That prompt is now `DEFAULT_STYLE` in `gemini_tts.py`.**
 
 ## Reference narrator
 
@@ -52,3 +52,15 @@ The tuned Algieba matches the narrator's pitch, range, breathiness and pause sha
 - It ends fewer lines on a fall: 50% vs 68%.
 
 It is a near match, not a clone. Final choice by ear.
+
+## Round 3: Algieba twice, two fixes for pace and endings (1 request)
+
+| Take | ECAPA | Resemblyzer | Pitch vs ref | Range vs ref | Brightness | Breathiness | Pace | Pauses |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| **B: "unhurried but never slow, about 140 wpm… drop the pitch firmly on the last word"** | 0.189 | 0.813 | **−0.1 st** | +0.7 st | **1155 Hz** | 8.4 dB | **136 wpm** | **31%** |
+| Round 2 tuned | 0.197 | 0.816 | +0.1 st | +0.3 st | 1129 Hz | 9.2 dB | 154 wpm | 32% |
+| A: "a little slower… decisive downward fall" | 0.220 | 0.814 | −3.5 st | −3.2 st | 1158 Hz | 6.5 dB | 137 wpm | 36% |
+
+Take B keeps the pitch match and fixes the pace (reference: 140 wpm, 30% pauses, 1250 Hz). The three takes are within 0.03 of each other on speaker similarity, which is noise at this level.
+
+Falling endings stay at 50% (reference 68%). With about 20 phrases in a 36 s read, that measure is noisy.
