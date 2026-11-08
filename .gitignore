@@ -6,3 +6,5 @@ voice/.cache/
 voice/refs/
 __pycache__/
 .venv/
+node_modules/
+renders/
