@@ -1,0 +1,23 @@
+{
+  "slug": "never_sleep_short",
+  "format": "short",
+  "voice": "Algieba",
+  "style": null,
+  "cover_t": 1.7,
+  "package": {
+    "title": "What If You Never Had to Sleep?",
+    "description": [
+      "Eight hours a night, every night. What if you got all of it back?",
+      "The math: 8 hours out of 24 is a third of your life. By 30, that's 30 × 365 × 8 = 87,600 hours, or ten whole years. By 80, it's 26 years and 8 months.",
+      "The real part: in 2009, Ying-Hui Fu's lab at UCSF found a mother and daughter with a tiny change in a gene called DEC2. They naturally sleep about six hours a night and wake up rested. Nobody can safely go without sleep entirely.",
+      "Would you take the 26 years? Tell me in the comments.",
+      "Sources:\n{sources}"
+    ],
+    "sources": [
+      "He Y. et al. (2009), The transcriptional repressor DEC2 regulates sleep length in mammals. Science 325: 866–870. https://doi.org/10.1126/science.1174443"
+    ],
+    "hashtags": ["#whatif", "#sleep", "#science", "#shorts"],
+    "tags": ["what if", "what if you never slept", "never sleep", "sleep science", "DEC2", "short sleeper", "short sleep gene", "animation", "buh essays"],
+    "pinned": "Would you take the 26 years, knowing everyone you love is asleep for a third of them?"
+  }
+}

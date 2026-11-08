@@ -104,7 +104,7 @@ async function renderRange(browser, o, k0, k1, fps, segPath, w, h) {
     await browser.close();
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "whatif-remix-"));
     const cues = path.join(tmp, "cues.json"), wav = path.join(tmp, "mix.wav");
-    fs.writeFileSync(cues, JSON.stringify({ duration: meta.duration, offset: 0, cues: meta.cues }));
+    fs.writeFileSync(cues, JSON.stringify({ duration: meta.duration, offset: 0, cues: meta.cues, scene_dir: path.dirname(path.resolve(o.scene)) }));
     const py = pythonBin();
     execFileSync(py, ["-I", o.audio, cues, wav], { stdio: "inherit" });
     fs.mkdirSync(path.dirname(path.resolve(o.out)), { recursive: true });
@@ -141,7 +141,7 @@ async function renderRange(browser, o, k0, k1, fps, segPath, w, h) {
 
   if (o.audio) {
     const cues = path.join(tmp, "cues.json"), wav = path.join(tmp, "mix.wav");
-    fs.writeFileSync(cues, JSON.stringify({ duration: n / fps, offset: kFrom / fps, cues: meta.cues }));
+    fs.writeFileSync(cues, JSON.stringify({ duration: n / fps, offset: kFrom / fps, cues: meta.cues, scene_dir: path.dirname(path.resolve(o.scene)) }));
     const py = pythonBin();
     try {
       execFileSync(py, ["-I", o.audio, cues, wav], { stdio: "inherit" });

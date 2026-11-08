@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Never sleep (Short)</title>
+<link rel="stylesheet" href="../../whatif/lib/stage.css">
+</head>
+<body>
+<div id="stage"></div>
+<script src="../../whatif/lib/stage.js"></script>
+<script src="../../whatif/lib/kit.js"></script>
+<script src="vo.js"></script>
+<script>
+/* What if you never had to sleep? Vertical Short. Line numbers refer to narration.txt. */
+const { lerp } = PT;
+K.init({ format: "short" });
+const V = K.vo, L = (i) => V.line(i), LE = (i) => V.lineEnd(i);
+
+/* ---- timeline, all from the narration */
+const T = {
+  banner: L(0) - 0.05, bannerOut: LE(1) + 0.3,
+  clockStop: V.at(2, ["247", "two"]) + 0.2, sleeps: L(3) - 0.05, dont: L(4) - 0.05,
+  ticket: L(5) - 0.2, rollA: V.at(5, "thats"), rollB: LE(5), years: L(6),
+  books: L(7), booksEnd: LE(7),
+  turnA: L(8) - 0.25,
+  helix: V.at(10, "one"), ring: V.at(10, "dec2") - 0.12, bars: V.at(10, "wake"), barsVal: V.at(10, ["six", "6"]) - 0.05,
+  card: L(11) - 0.2, kicker: V.at(11, "imagine"), fillA: V.at(12, "by"), fillB: V.at(12, ["26", "twenty"]) + 0.12, chime: V.atEnd(12, "years"),
+  ask: L(13) - 0.05,
+};
+T.turnB = T.turnA + 0.8;
+T.end = LE(13) + 1.9;
+
+/* ---- story world (front of the page) */
+const turn = K.turn();
+const world = K.world(turn.A);
+const room = K.loc.bedroom(world);
+const cam = K.keys([
+  [0, { x: 900, y: 520, z: 1.0 }], [T.sleeps - 0.2, { x: 900, y: 520, z: 1.02 }],
+  [T.sleeps + 0.5, { x: 1430, y: 560, z: 1.08 }], [T.dont - 0.1, { x: 1430, y: 560, z: 1.08 }],
+  [T.dont + 0.5, { x: 940, y: 560, z: 1.12 }], [T.books - 0.3, { x: 930, y: 540, z: 1.06 }],
+  [T.books + 0.4, { x: 380, y: 560, z: 1.12 }], [T.turnB, { x: 420, y: 560, z: 1.16 }],
+]);
+const banner = K.banner(turn.A, ["What if you", "*never* had", "to sleep?"], { x: 70, y: 70, w: 940, size: 112 });
+// captions sit at ~68% height: the Shorts title and buttons cover the bottom fifth and the right edge
+const say1 = K.say(turn.A, "Everyone sleeps.", { y: 1290, size: 80 });
+const say2 = K.say(turn.A, "You don't.", { y: 1290, size: 80 });
+const say3 = K.say(turn.A, "Twice.", { y: 1290, size: 80 });
+const ticket = K.ticket(turn.A, { x: 250, y: 150, label: "HOURS AWAKE INSTEAD", sub: "by your 30th birthday" });
+const HOURS30 = 30 * 365 * 8;           // 87,600
+const BOOKS = 14;
+
+banner.cues(T.banner, T.bannerOut);
+say1.cues(T.sleeps); say2.cues(T.dont); say3.cues(V.at(7, "twice") - 0.05);
+K.cue(T.clockStop, "clunk"); K.cue(T.ticket, "flap"); K.rollCues(T.rollA, T.rollB, 0, HOURS30, 1000);
+for (let s = 0; s < T.clockStop; s += 0.5 * Math.max(0.25, 1 - s / T.clockStop)) K.cue(s, "clocktick");
+const bookT = (i) => T.books + (T.booksEnd - T.books) * 0.85 * (i / (BOOKS - 2));
+for (let i = 2; i < BOOKS; i++) K.cue(bookT(i - 2), "pop", { soft: 1 });
+turn.cues(T.turnA, T.turnB);
+
+/* ---- riso page (under the page) */
+const page = K.riso.page(turn.B, { header: "What if you never had to sleep?  ·  what's real", page: "1" });
+const title = K.riso.title(page.inner, ["Some people", "really are", "built for", "less sleep."], { x: 120, y: 150, size: 112 });
+const titleTimes = V.wordsOf(9).slice(0, title.nWords);
+while (titleTimes.length < title.nWords) titleTimes.push(titleTimes[titleTimes.length - 1] + 0.1);
+const helix = K.riso.helix(page.inner, { x0: 110, x1: 970, cy: 820, hi: 12 });
+const bars = K.riso.bars(page.inner, { x: 140, y: 1250, unit: 92, max: 8, title: "Hours of sleep a night",
+  rows: [{ label: "Most adults", value: 8, text: "8 h" }, { label: "DEC2 carriers", value: 6.25, text: "6¼ h", color: "pink" }],
+  source: "A mother and daughter who wake up rested after about six hours. He et al., Science, 2009." });
+title.cues(titleTimes); helix.cues(T.helix, T.ring); bars.cues(T.bars, T.barsVal);
+
+const card = K.riso.card(turn.B, { x: 50, y: 120, w: 980, h: 1690 });
+const kicker = K.riso.text(card.el, "Never sleep, and by 80 you get back", { x: 70, y: 80, w: 860, size: 30, cls: "riso-label" });
+const big = K.riso.bignum(card.el, { x: 56, y: 150, size: 300, unit: "years", unitSize: 128 });
+const sub = K.riso.text(card.el, "and 8 months of extra waking life.", { x: 74, y: 480, w: 860, size: 50 });
+const math = K.riso.text(card.el, "80 years &nbsp;×&nbsp; 8 h ÷ 24 h &nbsp;=&nbsp; 26.7 years", { x: 76, y: 580, w: 860, size: 26, cls: "riso-label" });
+const grid = K.riso.grid(card.el, { x: 96, y: 680, size: 56, gap: 12, fill: 80 / 3, label: "1 square = 1 year of your life" });
+const ask = K.riso.text(card.el, "Would you <em>take them?</em>", { x: 64, y: 1250, w: 880, size: 76, cls: "risoT blue", align: "left" });
+card.cues(T.card); K.cue(T.kicker, "stamp", { soft: 1 }); grid.cues(T.fillA, T.fillB); K.cue(T.chime, "chime"); K.cue(T.ask, "stamp");
+
+/* ---- seek */
+K.finish((t) => {
+  world.camera(cam(t));
+  const minutes = lerp(23 * 60 + 10, 26 * 60 + 47, PT.ease.outQuint(PT.seg(t, 0, T.clockStop)));
+  const lookU = PT.ease.inOutCubic(PT.seg(t, T.dont - 0.1, T.dont + 0.3));
+  const books = 2 + Array.from({ length: BOOKS - 2 }, (_, i) => PT.seg(t, bookT(i), bookT(i) + 0.18)).reduce((a, b) => a + b, 0);
+  const readU = PT.seg(t, T.books - 0.2, T.books + 0.3);
+  room.update(t, {
+    clock: minutes, tag: PT.clamp((t - T.clockStop - 0.1) / 0.15), tagText: "2:47 A.M.", houseLight: t > 2.2 ? 0.25 : 1, books,
+    you: { head: lerp(-7, 2, lookU) + lerp(0, -6, readU), look: lerp(-0.9, 0, lookU) - readU * 0.9, brow: lerp(-4, 10, lookU),
+      mouth: lookU > 0.5 && readU < 0.5 ? "flat" : "smile", blink: K.blink(t, T.turnB) },
+  });
+  banner.at(t, T.banner, T.bannerOut);
+  say1.at(t, T.sleeps, T.dont - 0.18);
+  say2.at(t, T.dont, T.ticket + 0.7);
+  say3.at(t, V.at(7, "twice") - 0.05, T.turnA + 0.1);
+  const [v, dv] = K.roll(t, T.rollA, T.rollB, 0, HOURS30);
+  ticket.at(t, T.ticket, v, dv, t > T.years ? "= ten extra years" : "by your 30th birthday");
+  turn.at(t, T.turnA, T.turnB);
+
+  page.drift(t, T.turnA, T.end);
+  title.at(t, titleTimes);
+  helix.at(t, T.helix, T.ring);
+  bars.at(t, T.bars, T.barsVal);
+  card.at(t, T.card);
+  kicker.at(t, T.kicker);
+  const n = grid.at(t, T.card + 0.25, T.fillA, T.fillB);
+  big.at(t, T.fillA - 0.3, Math.min(26, n), T.chime);
+  sub.at(t, T.chime); math.at(t, T.chime + 0.45); ask.at(t, T.ask);
+}, T.end);
+</script>
+</body>
+</html>

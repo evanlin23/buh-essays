@@ -53,3 +53,15 @@ html, body { margin: 0; padding: 0; background: #000; overflow: hidden; }
 .leaf { position: absolute; inset: 0; transform-style: preserve-3d; transform-origin: 0 540px; }
 .leaf .face { position: absolute; inset: 0; backface-visibility: hidden; overflow: hidden; }
 .leaf .back { transform: rotateY(180deg); background: var(--riso-paper); }
+
+/* Riso pages and ink headlines (shared by every episode) */
+.risoT { font-family: "Fraunces"; font-weight: 900; line-height: 0.98; letter-spacing: -0.015em; }
+.risoT.blue { color: #0078bf; mix-blend-mode: multiply; }
+.risoT.pink { color: #ff48b0; mix-blend-mode: multiply; }
+.riso-label { font-family: "Bricolage"; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #0078bf; }
+.riso-body { font-family: "Fraunces"; font-style: italic; font-weight: 600; color: #0078bf; }
+.riso-body em { color: #ff48b0; font-style: italic; }
+.riso-num { font-family: "Bricolage"; font-weight: 800; color: #0078bf; }
+.mul { mix-blend-mode: multiply; }
+.headline.ink { color: #1c1f2e; text-shadow: 0 1px 0 rgba(255,255,255,0.35), 0 6px 8px rgba(60, 40, 20, 0.28); }
+.headline.ink em { color: #e4572e; }
