@@ -40,6 +40,42 @@ One episode is one folder in `episodes/`. One command takes it from script to up
 
 Sound comes from cues: every component pushes its own (pop, flap, tick, stamp, whoosh, fill, chime). `whatif/lib/audio.py` turns them into paper foley, puts a two-world music bed under the dry narration, and masters to −14 LUFS.
 
+## Long-form
+
+A long-form episode is the same folder, with `"format": "long"` in `episode.json`. Example: `episodes/never_sleep_long` ("You Were Born Awake", about 5 min).
+
+**`narration.txt`**
+- `## Chapter title` lines aren't spoken. They become YouTube chapters in the description.
+- A `{#tag}` at the end of a line names it. The scene uses `K.vo.tag("crossing")` instead of a line number, so you can edit the script without breaking it.
+- Blank lines split the script into voice requests. Keep each paragraph under about 180 words (80 s).
+
+**`scene.html`**
+- Build each location once as a world: `K.world(K.stage)` plus a set.
+- List the shots with `K.director([{t, el, kind, enter}])`. `enter` is `cut`, `fade` or `turn`; `kind` is `story` or `riso`, and picks the music bed.
+- Worlds that aren't on screen are switched off, so 15 worlds cost no more per frame than one.
+- `K.hud()` holds counters and captions that persist across shots.
+
+**`thumb.html`** renders the 1280×720 thumbnail when you run `package`.
+
+**Cost.** A 5-minute episode is 5 voice requests and about 90 minutes of rendering on this machine.
+
+**Queue.** `whatif/queue.sh [episode…]` narrates anything still on estimated timing, then renders, checks and packages it. Run it after the voice quota resets at midnight Pacific.
+
+## Sets
+
+| Set | File | Use |
+|---|---|---|
+| Bedroom (night) | `lib/kit.js` `K.loc.bedroom` | Window, moon, clock, lamp, book stack, bed with a configurable sleeper |
+| Park (day, dusk, night) | `lib/kit.js` `K.loc.park` | Bench, lamp post, trees, a cast |
+| Kitchen | `lib/sets/kitchen.js` | Stove flame and steam, sink window, pendant lamp, table with two seats |
+| Classroom | `lib/sets/classroom.js` | Chalkboard written in chalk, three desks with seated children, teacher |
+| Street (night) | `lib/sets/street.js` | Windows going dark one by one, a 24 h diner, lamp, bench, taxi |
+| Hospital | `lib/sets/hospital.js` | Bed with patient, ECG monitor, IV drip, visitor chair |
+
+**Props:** `K.prop.rocket`, `crib`, `chair`, `notes`. **Riso parts:** `K.riso.page`, `title`, `helix`, `bars`, `lines`, `card`, `grid`, `bignum`, `text`.
+
+**Seated puppets.** A set's seats assume a puppet of scale 1. For scale `s`, put the feet at `seatTop + 64·s`.
+
 ## Keeping renders fast
 
 A healthy scene costs about 0.8 s per frame in one browser page. If `stills` feels slow, time a frame before you render:
@@ -47,6 +83,7 @@ A healthy scene costs about 0.8 s per frame in one browser page. If `stills` fee
 - **`seek(t)` must be cheap.** A loop that ran to "forever" inside the blink helper once cost 12 s per frame, and no layer change could fix it.
 - **Anything that changes per frame lives on its own small layer.** Big paper-textured shapes (skies, walls, hills) go on static layers that Chrome rasterises once. Fade or move them with CSS on the layer, never by editing the SVG inside them.
 - **Only write a value when it changes.** Setting an attribute to the same value can still force a repaint.
+- **Don't wrap a whole set in one filtered group.** Chrome re-filters a group that spans the set on every frame, even when nothing in it changes. One `card1` group around every window frame on the street cost 0.6 s per frame; one group per building fixed it.
 
 ## Shorts safe zone
 

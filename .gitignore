@@ -9,3 +9,4 @@ __pycache__/
 node_modules/
 renders/
 episodes/*/vo_cache/
+episodes/*/_test.html

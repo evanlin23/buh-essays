@@ -1,0 +1,29 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Hospital set test</title><link rel="stylesheet" href="../lib/stage.css"></head>
+<body><div id="stage"></div>
+<script src="../lib/stage.js"></script><script src="../lib/kit.js"></script><script src="../lib/sets/hospital.js"></script>
+<script>
+/* Test card for K.loc.hospital: t = 0 day, 1 dusk (patient awake), 2 night, 3 night flatline (long format).
+ * #short renders the vertical framing: t = 0 monitor and patient, 1 bed, 2 visitor chair, 3 window. */
+const short = location.hash === "#short";
+K.init({ format: short ? "short" : "long" });
+const w = K.world(K.stage);
+const room = K.loc.hospital(w, {
+  patient: { hair: "#e9e4da", hairStyle: "thin", color: "#5aa9e6" },
+  cast: [
+    { chair: true, shirt: "#e4572e", hair: "#3a2a22", hairStyle: "curly" },                    // visitor, seated
+    { x: 120, shirt: "#2a9d8f", hair: "#2a1f1d", hairStyle: "bun", glasses: true },             // doctor by the monitor
+  ],
+});
+const A = room.anchors;
+const shots = [{ x: 350 }, A.bed, A.chair, A.window];
+// beep cues from the same beat grid the monitor draws
+room.beats(0, 2.9, 72).forEach((b) => K.cue(b, "beep"));
+K.finish((t) => {
+  const i = Math.max(0, Math.min(3, Math.round(t)));
+  w.camera(short ? { x: shots[i].x, y: 560, z: 1 } : { x: 960, y: 540, z: 1 });
+  const k = short ? [0, 0.5, 1, 0.25][i] : Math.min(1, t / 2);
+  room.update(t, { sky: k, eyes: i === 1 ? "open" : "closed", bpm: 72, flat: !short && t > 2.9 ? 1 : 0,
+    cast: [{ look: -1, armF: 12, armB: -12, mouth: i === 3 ? "flat" : "smile" }, { look: 1, armB: 40, brow: 6 }] });
+}, 4);
+</script></body></html>
