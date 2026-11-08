@@ -1,0 +1,45 @@
+{
+  "slug": "twin_stays_short",
+  "format": "short",
+  "voice": "Algieba",
+  "style": null,
+  "cover_t": 1.8,
+  "status": "script ready, scene to build",
+  "package": {
+    "title": "What If Your Twin Left at the Speed of Light?",
+    "alt_titles": [
+      "Your Twin Came Home 45 Years Younger Than You",
+      "You're 75. Your Twin Is 30. This Is Real Physics."
+    ],
+    "description": [
+      "Your twin leaves at 99.5% of the speed of light. Ten years pass on Earth for every one on their ship.",
+      "The math: at 99.5% c the Lorentz factor is about 10. Five years on their clock is fifty down here: they land at 30, you're 75.",
+      "The real part: in 1977, muons in CERN's storage ring moving at about 99.94% of light speed lived 29.3 times longer than muons at rest, just as relativity predicts. Scott Kelly's almost-a-year on the ISS left him a few thousandths of a second younger than he'd otherwise be, relative to his twin Mark.",
+      "Would you wave goodbye? Tell me in the comments.",
+      "Sources:\n{sources}"
+    ],
+    "sources": [
+      "Bailey J. et al. (1977), Measurements of relativistic time dilatation for positive and negative muons in a circular orbit. Nature 268: 301–305. https://www.nature.com/articles/268301a0",
+      "HyperPhysics (Georgia State University), Time dilation. http://hyperphysics.phy-astr.gsu.edu/hbase/Relativ/tdil.html",
+      "NASA Twins Study. https://www.nasa.gov/humans-in-space/twins-study/"
+    ],
+    "hashtags": [
+      "#whatif",
+      "#physics",
+      "#relativity",
+      "#shorts"
+    ],
+    "tags": [
+      "what if",
+      "twin paradox",
+      "speed of light",
+      "time dilation",
+      "relativity",
+      "muons",
+      "scott kelly",
+      "animation",
+      "buh essays"
+    ],
+    "pinned": "Would you wave goodbye, knowing they'd come home the same age as your kids?"
+  }
+}

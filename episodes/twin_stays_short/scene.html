@@ -1,0 +1,136 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Twin at light speed (Short)</title>
+<link rel="stylesheet" href="../../whatif/lib/stage.css">
+</head>
+<body>
+<div id="stage"></div>
+<script src="../../whatif/lib/stage.js"></script>
+<script src="../../whatif/lib/kit.js"></script>
+<script src="vo.js"></script>
+<script>
+/* What if your twin left at 99.5% of light speed? Told by the twin who stays. Line numbers refer to narration.txt. */
+const { lerp, clamp, seg, ease, spring } = PT;
+K.init({ format: "short" });
+const V = K.vo, L = (i) => V.line(i), LE = (i) => V.lineEnd(i);
+const GAMMA = 1 / Math.sqrt(1 - 0.995 ** 2);   // 10.01
+
+const T = {
+  banner: L(0) - 0.05, bannerOut: LE(0) + 0.35, tickets: L(1),
+  board: L(2), launch: L(2) + 1.0, marry: V.at(4, "married"), daughter: V.at(5, "daughter"),
+  land: L(6), out: V.at(6, ["they're", "theyre"]) , same: L(7),
+  turnA: L(8) - 0.25,
+  title: L(9), lines: L(9), linesEnd: LE(9), bars: V.at(10, "lived"), barsVal: V.at(10, ["29", "twenty"]),
+  card: L(11) - 0.2, kelly: V.at(11, "aged"), ask: L(12),
+};
+T.turnB = T.turnA + 0.8;
+T.end = LE(12) + 1.9;
+
+/* your age on Earth, and your twin's on the ship (Earth years / gamma), both rolling as each line is spoken */
+const EARTH = [[L(1), 0], [L(3), 10], [L(5), 20], [L(6), 50]];
+const earthYears = (t) => {
+  let i = -1;
+  while (i + 1 < EARTH.length && t >= EARTH[i + 1][0]) i++;
+  if (i < 0) return 0;
+  const [a, v] = EARTH[i], prev = i ? EARTH[i - 1][1] : v, next = i + 1 < EARTH.length ? EARTH[i + 1][0] : a + 1.6;
+  return lerp(prev, v, ease.inOutSine(seg(t, a, a + Math.min(next - a, 1.8))));
+};
+
+/* ---- story world */
+const turn = K.turn();
+const world = K.world(turn.A);
+const park = K.loc.park(world, { cast: [
+  { x: 1150, shirt: "#e4572e", hair: "#3a2a22", hairStyle: "curly" },     // you
+  { x: 1300, shirt: "#5aa9e6", hair: "#3a2a22", hairStyle: "curly" },     // your twin
+  { x: 990, shirt: "#2a9d8f", hair: "#2a1f1d", hairStyle: "bun" },        // the person you marry
+  { x: 1060, shirt: "#f2b134", hair: "#6b3d24", hairStyle: "bob" },       // your daughter
+] });
+const [you, twin, spouse, kid] = park.people.map((q) => q.p);
+const rocketLayer = world.layer(0.95);
+const rocket = K.prop.rocket(rocketLayer);
+const cam = K.keys([[0, { x: 1220, y: 600, z: 1.0 }], [T.launch, { x: 1260, y: 560, z: 1.0 }], [T.launch + 1.4, { x: 1260, y: 420, z: 0.96 }],
+  [L(3), { x: 1150, y: 600, z: 1.05 }], [T.land, { x: 1180, y: 600, z: 1.0 }], [T.same, { x: 1200, y: 620, z: 1.1 }], [T.turnB, { x: 1200, y: 620, z: 1.14 }]]);
+
+const banner = K.banner(turn.A, ["What if your twin", "left at the", "*speed of light?*"], { x: 60, y: 70, w: 960, size: 92 });
+const tYou = K.ticket(turn.A, { x: 70, y: 150, w: 440, label: "YOU", sub: "Earth time", digits: 3 });
+const tTwin = K.ticket(turn.A, { x: 570, y: 150, w: 440, label: "YOUR TWIN", sub: "ship time", digits: 3 });
+const say1 = K.say(turn.A, "×10", { y: 1240, size: 120 });
+const say2 = K.say(turn.A, "They miss it.", { y: 1290, size: 72 });
+const say3 = K.say(turn.A, "Same age as your daughter.", { y: 1290, size: 64 });
+
+banner.cues(T.banner, T.bannerOut);
+K.cue(T.tickets, "flap"); K.cue(T.tickets + 0.15, "flap"); K.cue(T.launch, "whoosh"); K.cue(T.land - 0.4, "whoosh");
+K.cue(T.marry, "pop"); K.cue(T.daughter, "pop"); K.cue(T.out, "pop");
+say1.cues(V.at(2, "ten")); say2.cues(V.at(4, "they")); say3.cues(T.same);
+[[L(3), 10], [L(5), 10], [L(6), 30]].forEach(([a, n]) => { for (let k = 0; k < n; k++) K.cue(a + (k / n) * 1.7, "tick"); });
+turn.cues(T.turnA, T.turnB);
+
+/* ---- riso page */
+const page = K.riso.page(turn.B, { header: "What if your twin left at the speed of light?  ·  what's real", page: "1" });
+const title = K.riso.title(page.inner, ["Moving clocks", "run slow."], { x: 120, y: 160, size: 120 });
+const titleTimes = [0, 1, 2, 3].map((i) => T.title + 0.3 * i);
+const graph = K.riso.lines(page.inner, { x: 150, y: 520, w: 640, h: 380, xMax: 50, yMax: 80, xLabel: "years on Earth",
+  xTicks: [0, 10, 20, 30, 40, 50], yTicks: [0, 25, 50, 75],
+  series: [{ label: "YOU", color: "blue", f: (x) => 25 + x }, { label: "TWIN", color: "pink", f: (x) => 25 + x / GAMMA }] });
+const bars = K.riso.bars(page.inner, { x: 140, y: 1150, unit: 24, max: 30, step: 5, gap: 110, h: 60,
+  rows: [{ label: "Muons sitting still", value: 1, text: "1×" }, { label: "Muons at 99.94% of light speed", value: 29.3, text: "29×", color: "pink" }],
+  source: "CERN muon storage ring, 1977. Bailey et al., Nature." });
+title.cues(titleTimes); graph.cues(T.lines, T.linesEnd); bars.cues(T.bars, T.barsVal);
+
+const card = K.riso.card(turn.B, { x: 50, y: 120, w: 980, h: 1690 });
+const kick = K.riso.text(card.el, "Scott Kelly, 340 days on the ISS", { x: 70, y: 80, w: 860, size: 30, cls: "riso-label" });
+const kellyBig = K.riso.text(card.el, "aged a few <em>thousandths of a second</em> less than his twin.", { x: 64, y: 160, w: 860, size: 92, cls: "risoT blue" });
+const kellyNote = K.riso.text(card.el, "His identical twin, Mark, stayed on the ground as the control.", { x: 70, y: 640, w: 840, size: 38 });
+const ask = K.riso.text(card.el, "Would you<br><em>wave goodbye?</em>", { x: 64, y: 860, w: 880, size: 112, cls: "risoT blue" });
+card.cues(T.card); K.cue(T.kelly, "stamp"); K.cue(T.ask, "chime");
+
+let hair = -1;
+K.finish((t) => {
+  world.camera(cam(t));
+  const ey = earthYears(t), you25 = 25 + ey, twin25 = 25 + ey / GAMMA;
+  const sky = 0.5 - 0.5 * Math.cos((2 * Math.PI * ey) / 8);
+  // you grey and stoop as the decades pass
+  const hc = you25 < 50 ? 0 : you25 < 65 ? 1 : 2;
+  if (hc !== hair) { you.setHair(hc === 2 ? "thin" : "curly", ["#3a2a22", "#8f8a84", "#e9e4da"][hc]); hair = hc; }
+  // your twin walks to the rocket, leaves, comes back unchanged
+  const walk = ease.inOutSine(seg(t, T.board, T.board + 0.8));
+  const away = t > T.board + 0.8 && t < T.out;
+  twin.root.style.opacity = away ? 0 : 1;
+  const back = spring(t - T.out, 0.5, 1.2);
+  const twinX = t < T.out ? lerp(1300, 1440, walk) : lerp(1440, 1345, back);
+  // the rocket: up and away, then back down
+  const up = ease.inCubic(seg(t, T.launch, T.launch + 1.8)), down = ease.outCubic(seg(t, T.land - 0.6, T.land + 0.5));
+  const ry = t < T.land - 0.6 ? 930 - 2400 * up : 930 - 2400 * (1 - down);
+  const flame = t < T.land - 0.6 ? clamp((t - T.launch + 0.3) / 0.3) * (up < 1 ? 1 : 0) : (down < 1 ? 1 : 0.2 * clamp(1 - (t - T.land - 0.5) / 0.4));
+  rocket.at({ x: 1440, y: ry + 6 * Math.sin(t * 40) * (flame > 0.5 && ry > 900 ? 1 : 0), flame, t });
+  const sp = spring(t - T.marry, 0.5, 1.2), kd = spring(t - T.daughter, 0.5, 1.2);
+  spouse.root.style.opacity = t > T.marry ? 1 : 0;
+  kid.root.style.opacity = t > T.daughter ? 1 : 0;
+  const kidAge = Math.max(0, you25 - 45);
+  const spread = ease.inOutSine(seg(t, T.land - 0.6, T.land + 0.4));   // make room for the twin coming home
+  park.update(t, { sky: t > T.land ? lerp(sky, 0.15, clamp((t - T.land) / 0.8)) : sky, cast: [
+    { x: lerp(1150, 1050, spread), lean: clamp((you25 - 55) / 20) * 7, look: t > T.same ? 0.4 : 0, mouth: t > T.out ? "o" : "smile", brow: t > T.out ? 10 : 0 },
+    { x: twinX, look: t > T.same ? -0.6 : -0.2 },
+    { x: lerp(990, 920, spread), s: 1.3 * sp, lean: clamp((you25 - 60) / 20) * 6 },
+    { s: lerp(0.55, 1.22, clamp(kidAge / 18)) * kd, hs: lerp(1.4, 1.02, clamp(kidAge / 18)), x: lerp(1060, 1215, clamp((t - T.same + 0.6) / 0.6)), look: t > T.same ? 0.6 : 0 },
+  ] });
+  banner.at(t, T.banner, T.bannerOut);
+  const snap = (v) => Math.floor(v) + ease.inOutSine(clamp((v - Math.floor(v) - 0.8) / 0.2));
+  const dv = (earthYears(t + 1 / 24) - ey);
+  tYou.at(t, T.tickets, snap(you25), dv);
+  tTwin.at(t, T.tickets + 0.15, snap(twin25), dv / GAMMA);
+  say1.at(t, V.at(2, "ten"), L(3) - 0.4); say2.at(t, V.at(4, "they"), L(5) - 0.4); say3.at(t, T.same, T.turnA + 0.1);
+  turn.at(t, T.turnA, T.turnB);
+
+  page.drift(t, T.turnA, T.end);
+  title.at(t, titleTimes);
+  graph.at(t, T.lines, T.linesEnd);
+  bars.at(t, T.bars, T.barsVal);
+  card.at(t, T.card);
+  kick.at(t, T.card + 0.3); kellyBig.at(t, T.kelly); kellyNote.at(t, T.kelly + 1.2); ask.at(t, T.ask);
+}, T.end);
+</script>
+</body>
+</html>

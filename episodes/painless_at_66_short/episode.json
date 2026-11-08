@@ -1,0 +1,43 @@
+{
+  "slug": "painless_at_66_short",
+  "format": "short",
+  "voice": "Algieba",
+  "style": null,
+  "cover_t": 1.8,
+  "status": "script ready, scene to build",
+  "package": {
+    "title": "What If You Never Felt Pain and Didn't Know Until 66?",
+    "alt_titles": [
+      "She Smelled Her Burns Before She Felt Them",
+      "This Woman Can't Feel Pain. She Found Out at 66."
+    ],
+    "description": [
+      "Jo Cameron, from Scotland, didn't discover she couldn't feel pain until she was 66.",
+      "After a hip replacement at 65 and hand surgery at 66 she needed nothing stronger than paracetamol. She often smelled burns before noticing them, her cuts healed quickly, and she scored 0 out of 21 on the GAD-7 anxiety scale.",
+      "Scientists traced it to a microdeletion in a gene they named FAAH-OUT, together with a low-activity variant of FAAH. Together they raise her levels of anandamide, one of the body's own pain-dampening molecules.",
+      "Would you give up pain? Tell me in the comments.",
+      "Sources:\n{sources}"
+    ],
+    "sources": [
+      "Habib A. M. et al. (2019), British Journal of Anaesthesia: microdeletion in a FAAH pseudogene (FAAH-OUT) in a patient with pain insensitivity. https://pmc.ncbi.nlm.nih.gov/articles/PMC6676009",
+      "Mikaeili H. et al. (2023), Brain: the molecular basis of FAAH-OUT-associated pain insensitivity."
+    ],
+    "hashtags": [
+      "#whatif",
+      "#pain",
+      "#science",
+      "#shorts"
+    ],
+    "tags": [
+      "what if",
+      "can't feel pain",
+      "jo cameron",
+      "FAAH-OUT",
+      "pain insensitivity",
+      "genetics",
+      "animation",
+      "buh essays"
+    ],
+    "pinned": "Would you give up pain, if it meant never knowing when you're hurt?"
+  }
+}

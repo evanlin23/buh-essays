@@ -331,6 +331,32 @@
     };
   };
 
+  /* ---------------------------------------------------------------- props */
+  K.prop = {};
+  /* Paper rocket, about 380 units tall, origin at the base centre. at({x, y, flame 0..1, tilt}) */
+  K.prop.rocket = (layer, { color = "#f6ecd9", trim = "#e4572e" } = {}) => {
+    const g = svg("g", {}, layer);
+    const flame = svg("g", {}, g);
+    const f1 = svg("path", { d: "M -34 0 Q 0 150 34 0 Z", fill: "#ffb45e", filter: "url(#lift)" }, flame);
+    const f2 = svg("path", { d: "M -18 0 Q 0 90 18 0 Z", fill: "#fff1c2" }, flame);
+    const body = svg("g", { filter: "url(#card2)" }, g);
+    svg("path", { d: "M -70 -40 L -120 20 L -120 -10 L -70 -120 Z M 70 -40 L 120 20 L 120 -10 L 70 -120 Z", fill: trim }, body);
+    svg("path", { d: "M -70 0 L -70 -250 Q -70 -360 0 -400 Q 70 -360 70 -250 L 70 0 Z", fill: color }, body);
+    svg("path", { d: "M -70 -250 Q -70 -360 0 -400 Q 70 -360 70 -250 Z", fill: trim }, body);
+    svg("circle", { cx: 0, cy: -180, r: 30, fill: "#3d4f80" }, body);
+    svg("circle", { cx: 0, cy: -180, r: 30, fill: "none", stroke: "url(#brass)", "stroke-width": 8 }, body);
+    svg("rect", { x: -70, y: -40, width: 140, height: 14, fill: trim, opacity: 0.8 }, body);
+    return {
+      g,
+      at({ x, y, flame: fl = 0, tilt = 0, t = 0 }) {
+        g.setAttribute("transform", `translate(${x} ${y}) rotate(${tilt})`);
+        const flick = 1 + 0.15 * Math.sin(t * 47) * Math.sin(t * 13);
+        flame.setAttribute("transform", `scale(${fl} ${fl * flick})`);
+        flame.style.opacity = fl > 0.02 ? 1 : 0;
+      },
+    };
+  };
+
   /* blinks every 2.3-3.4 s until `until` */
   K.blink = (t, until = 1e9, start = 1.9) => {
     let best = 0;
@@ -516,12 +542,12 @@
       cues(tDraw, tRing) { K.cue(tDraw, "draw", { dur: 1.0 }); K.cue(tRing, "pop"); },
     };
   };
-  K.riso.bars = (parent, { x, y, unit, max, gap = 130, h = 74, title = "", rows, source = "" }) => {
+  K.riso.bars = (parent, { x, y, unit, max, step = 1, gap = 130, h = 74, title = "", rows, source = "" }) => {
     const s = svg("svg", { width: K.W, height: K.H, viewBox: `0 0 ${K.W} ${K.H}`, style: "position:absolute;inset:0" }, parent);
     if (title) html("div", { class: "riso-label", text: title, style: { position: "absolute", left: x + "px", top: y - 78 + "px", fontSize: "22px" } }, parent);
     const axis = svg("g", { stroke: BLUE, "stroke-width": 2, class: "mul", filter: "url(#ink)" }, s);
     const ay = y + rows.length * gap - 30;
-    for (let v = 0; v <= max; v++) {
+    for (let v = 0; v <= max + 1e-9; v += step) {
       svg("line", { x1: x + v * unit, y1: ay, x2: x + v * unit, y2: ay + 12 }, axis);
       const tx = svg("text", { x: x + v * unit, y: ay + 44, "text-anchor": "middle", "font-family": "Bricolage", "font-weight": 700, "font-size": 22, fill: BLUE, stroke: "none" }, axis);
       tx.textContent = v;

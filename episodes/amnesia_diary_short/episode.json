@@ -1,0 +1,43 @@
+{
+  "slug": "amnesia_diary_short",
+  "format": "short",
+  "voice": "Algieba",
+  "style": null,
+  "cover_t": 1.8,
+  "status": "script ready, scene to build",
+  "package": {
+    "title": "What If the Person You Love Forgot Everything Every Few Seconds?",
+    "alt_titles": [
+      "\"This Time Properly Awake\": The Diary of a Man Who Forgot Every Few Seconds",
+      "He Forgot Everything Except His Wife"
+    ],
+    "description": [
+      "In 1985, the English musician Clive Wearing caught herpes encephalitis. It left him with a memory span of only seconds, which Oliver Sacks called the most devastating case of amnesia ever recorded.",
+      "His diary filled with near-identical entries, each crossing out the one before: \"2:10 P.M: This time properly awake... 2:14 P.M: this time finally awake... 2:35 P.M: this time completely awake.\"",
+      "He always recognised his wife, Deborah, and greeted her with relief every time. He could still play the piano and conduct.",
+      "If you could only keep one thing, what would you keep?",
+      "Sources:\n{sources}"
+    ],
+    "sources": [
+      "Oliver Sacks (2007), \"The Abyss\". The New Yorker, 24 September 2007.",
+      "Wilson B. A., Baddeley A. D., Kapur N. (1995), Journal of Clinical and Experimental Neuropsychology 17: 668–681."
+    ],
+    "hashtags": [
+      "#whatif",
+      "#memory",
+      "#psychology",
+      "#shorts"
+    ],
+    "tags": [
+      "what if",
+      "amnesia",
+      "clive wearing",
+      "memory",
+      "brain",
+      "oliver sacks",
+      "animation",
+      "buh essays"
+    ],
+    "pinned": "If you could only keep one thing, what would you keep?"
+  }
+}

@@ -1,0 +1,190 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Greenland shark (Short)</title>
+<link rel="stylesheet" href="../../whatif/lib/stage.css">
+</head>
+<body>
+<div id="stage"></div>
+<script src="../../whatif/lib/stage.js"></script>
+<script src="../../whatif/lib/kit.js"></script>
+<script src="vo.js"></script>
+<script>
+/* What if you aged like a Greenland shark? Vertical Short. Line numbers refer to narration.txt. */
+const { lerp, clamp, seg, ease, spring, svg, html } = PT;
+K.init({ format: "short" });
+const V = K.vo, L = (i) => V.line(i), LE = (i) => V.lineEnd(i);
+
+const T = {
+  banner: L(0) - 0.05, bannerOut: LE(0) + 0.35, rule: L(1),
+  gone: V.at(4, "gone"), puberty: V.at(5, ["150", "hundred"]), alone: L(6),
+  turnA: L(7) - 0.25,
+  shark: L(8), ring: V.at(8, "lenses"), grow: L(9), growEnd: LE(9), bars: L(10), barsVal: V.at(10, ["400", "four"]),
+  card: L(11) - 0.2, timeline: V.at(11, "before"), payoff: V.atEnd(11, "existed"), ask: L(12),
+};
+T.turnB = T.turnA + 0.8;
+T.end = LE(12) + 1.9;
+
+/* age climbs line by line: born, 20, 50, 80, 150, then a little more while you stand alone */
+const AGE_KEYS = [[L(1), 0], [L(2), 20], [L(3), 50], [L(4), 80], [L(5), 150], [L(6), 160], [T.turnA, 165]];
+const ageAt = (t) => {
+  // during line i the counter rolls from the previous age up to line i's age, as it is spoken
+  let i = -1;
+  while (i + 1 < AGE_KEYS.length && t >= AGE_KEYS[i + 1][0]) i++;
+  if (i < 0) return 0;
+  const [a, v] = AGE_KEYS[i], prev = i ? AGE_KEYS[i - 1][1] : v;
+  const next = i + 1 < AGE_KEYS.length ? AGE_KEYS[i + 1][0] : a + 1.6;
+  return lerp(prev, v, ease.inOutSine(seg(t, a, a + Math.min(next - a, 1.6))));
+};
+
+/* ---- story world */
+const turn = K.turn();
+const world = K.world(turn.A);
+const park = K.loc.park(world, { cast: [
+  { x: 1225, shirt: "#e4572e", hair: "#3a2a22", hairStyle: "curly" },          // you
+  { x: 1065, shirt: "#2a9d8f", hair: "#2a1f1d", hairStyle: "bun" },            // mom
+  { x: 1395, shirt: "#7b4b94", hair: "#2a1f1d", hairStyle: "short" },          // dad
+] });
+const [you, mom, dad] = park.people.map((q) => q.p);
+// stroller, in front of you
+const props = world.layer(1.0);
+const stroller = svg("g", { filter: "url(#card2)" }, props);
+svg("path", { d: "M 1140 860 Q 1140 930 1225 930 Q 1310 930 1310 860 Z", fill: "#3d4f80" }, stroller);
+svg("path", { d: "M 1150 860 Q 1160 790 1240 790 L 1240 860 Z", fill: "#e4572e" }, stroller);
+svg("path", { d: "M 1310 860 L 1350 800 L 1372 800", stroke: "#2b2f45", "stroke-width": 9, fill: "none", "stroke-linecap": "round" }, stroller);
+[1170, 1290].forEach((x) => { svg("circle", { cx: x, cy: 950, r: 22, fill: "#2b2f45" }, stroller); svg("circle", { cx: x, cy: 950, r: 7, fill: "url(#brass)" }, stroller); });
+const cam = K.keys([[0, { x: 1225, y: 600, z: 1.0 }], [L(2), { x: 1225, y: 640, z: 1.08 }], [L(4), { x: 1230, y: 600, z: 1.0 }],
+  [T.alone, { x: 1225, y: 620, z: 1.12 }], [T.turnB, { x: 1225, y: 620, z: 1.16 }]]);
+
+const banner = K.banner(turn.A, ["What if you", "aged like a", "*Greenland shark?*"], { x: 60, y: 70, w: 960, size: 96 });
+const tAge = K.ticket(turn.A, { x: 70, y: 150, w: 440, label: "AGE", sub: "years", digits: 3 });
+const tBody = K.ticket(turn.A, { x: 570, y: 150, w: 440, label: "BODY", sub: "years", digits: 3 });
+const say1 = K.say(turn.A, "Your parents are gone.", { y: 1290, size: 72 });
+const say2 = K.say(turn.A, "Puberty, at 150.", { y: 1290, size: 72 });
+const say3 = K.say(turn.A, "Nobody is left.", { y: 1290, size: 72 });
+
+banner.cues(T.banner, T.bannerOut);
+K.cue(T.rule, "flap"); K.cue(T.rule + 0.15, "flap");
+for (let i = 1; i < AGE_KEYS.length; i++) {
+  const [a, vb] = AGE_KEYS[i], va = AGE_KEYS[i - 1][1], next = i + 1 < AGE_KEYS.length ? AGE_KEYS[i + 1][0] : a + 1.6, d = Math.min(next - a, 1.6);
+  for (let v = Math.ceil(va / 10) * 10 + 10; v <= vb; v += 10) {
+    let lo = 0, hi = 1, target = (v - va) / (vb - va);
+    for (let k = 0; k < 30; k++) { const m = (lo + hi) / 2; ease.inOutSine(m) < target ? (lo = m) : (hi = m); }
+    K.cue(a + d * lo, "tick");
+  }
+}
+K.cue(L(2), "pop"); K.cue(L(3), "pop", { soft: 1 }); K.cue(T.gone, "fold"); K.cue(T.puberty, "pop");
+say1.cues(T.gone - 0.1); say2.cues(T.puberty); say3.cues(T.alone);
+turn.cues(T.turnA, T.turnB);
+
+/* ---- riso page */
+const page = K.riso.page(turn.B, { header: "What if you aged like a Greenland shark?  ·  what's real", page: "1" });
+const title = K.riso.title(page.inner, ["Dated by", "their eyes."], { x: 120, y: 160, size: 132 });
+const titleTimes = [V.at(8, "dated"), V.at(8, "by"), V.at(8, "their"), V.at(8, "eyes")];
+// the shark, drawn on left to right
+const sk = svg("svg", { width: 1080, height: 1920, viewBox: "0 0 1080 1920", style: "position:absolute;inset:0" }, page.inner);
+const clipId = K.uid("shark");
+svg("clipPath", { id: clipId }, svg("defs", {}, sk)).appendChild(svg("rect", { id: clipId + "r", x: 100, y: 520, width: 0, height: 420 }));
+const sg = svg("g", { "clip-path": `url(#${clipId})`, filter: "url(#ink)" }, sk);
+// a Greenland shark: blunt snout, stout body, two small dorsal fins set far back, long upper tail lobe
+const body = "M 120 752 C 118 706 168 676 270 668 C 450 656 680 664 840 694 C 880 680 930 640 990 600 C 975 660 958 700 944 738 C 952 760 962 786 972 812 C 930 792 890 772 850 762 C 700 802 480 820 310 814 C 190 810 122 792 120 752 Z";
+svg("path", { d: body, fill: "#0078bf", opacity: 0.14, class: "mul" }, sg);
+svg("path", { d: body, fill: "url(#dotsBlue)", class: "mul", transform: "translate(3 -2)" }, sg);
+svg("path", { d: "M 560 662 Q 590 628 626 662 Z M 712 676 Q 736 650 760 682 Z M 330 812 L 286 874 L 410 814 Z", fill: "url(#dotsPink)", class: "mul" }, sg);
+svg("path", { d: body, fill: "none", stroke: "#0078bf", "stroke-width": 6, class: "mul" }, sg);
+svg("path", { d: "M 140 772 Q 190 790 250 780", fill: "none", stroke: "#0078bf", "stroke-width": 5, "stroke-linecap": "round", class: "mul" }, sg);
+[292, 312, 332, 352].forEach((x) => svg("path", { d: `M ${x} 714 q -8 22 0 44`, fill: "none", stroke: "#0078bf", "stroke-width": 4, class: "mul" }, sg));
+svg("circle", { cx: 196, cy: 722, r: 8, fill: "#1c1f2e" }, sg);
+const ring = svg("circle", { cx: 196, cy: 722, r: 46, fill: "none", stroke: "#ff48b0", "stroke-width": 6, class: "mul", "stroke-dasharray": "290", "stroke-dashoffset": "290", transform: "rotate(-90 196 722)" }, sk);
+const ringLine = svg("path", { fill: "none", stroke: "#0078bf", "stroke-width": 3, "stroke-dasharray": "6 7", class: "mul" }, sk);
+const ringLab = K.riso.text(page.inner, "EYE LENS: RADIOCARBON-DATED", { x: 120, y: 905, w: 700, size: 22, cls: "riso-label" });
+const grow = K.riso.bignum(page.inner, { x: 110, y: 950, size: 210, digits: 3, unit: "years", unitSize: 92 });
+const growLab = K.riso.text(page.inner, "until a Greenland shark is grown up", { x: 120, y: 1170, w: 860, size: 40 });
+const bars = K.riso.bars(page.inner, { x: 140, y: 1300, unit: 1.6, max: 400, step: 100, gap: 104, h: 56, title: "",
+  rows: [{ label: "A long human life", value: 80, text: "80" }, { label: "The oldest shark measured", value: 392, text: "~400", color: "pink" }] });
+title.cues(titleTimes); K.cue(T.shark, "draw", { dur: 1.1 }); K.cue(T.ring, "pop"); K.rollCues(T.grow, T.growEnd, 0, 150, 10); bars.cues(T.bars, T.barsVal);
+
+// the payoff card: born before 1776, even at the young end of the estimate
+const card = K.riso.card(turn.B, { x: 50, y: 120, w: 980, h: 1690 });
+const kick = K.riso.text(card.el, "She was born somewhere in here", { x: 70, y: 80, w: 860, size: 30, cls: "riso-label" });
+const tl = svg("svg", { width: 980, height: 1330, viewBox: "0 0 980 1330", style: "position:absolute;inset:0" }, card.el);
+const Y0 = 1500, Y1 = 2026, TX = (y) => 80 + ((y - Y0) / (Y1 - Y0)) * 820;
+const tlg = svg("g", { filter: "url(#ink)" }, tl);
+const band = svg("rect", { x: TX(1504), y: 230, width: 0, height: 120, fill: "url(#dotsPink)", class: "mul" }, tlg);
+const bandTint = svg("rect", { x: TX(1504), y: 230, width: 0, height: 120, fill: "#ff48b0", opacity: 0.18, class: "mul" }, tlg);
+svg("path", { d: `M ${TX(1500)} 380 H ${TX(2026)}`, stroke: "#0078bf", "stroke-width": 4, class: "mul" }, tlg);
+[1500, 1600, 1700, 1800, 1900, 2000].forEach((y) => {
+  svg("path", { d: `M ${TX(y)} 380 v 16`, stroke: "#0078bf", "stroke-width": 3, class: "mul" }, tlg);
+  const e = svg("text", { x: TX(y), y: 430, "text-anchor": "middle", "font-family": "Bricolage", "font-weight": 700, "font-size": 24, fill: "#0078bf" }, tlg); e.textContent = y;
+});
+const usa = svg("g", { opacity: 0 }, tl);
+svg("path", { d: `M ${TX(1776)} 200 V 380`, stroke: "#0078bf", "stroke-width": 5, class: "mul" }, usa);
+const ut = svg("text", { x: TX(1776) + 12, y: 210, "font-family": "Bricolage", "font-weight": 800, "font-size": 30, fill: "#0078bf" }, usa); ut.textContent = "1776: USA";
+const rangeLab = K.riso.text(card.el, "1504–1744", { x: TX(1504), y: 470, w: 400, size: 44, cls: "riso-num" });
+rangeLab.el.style.color = "#ff48b0";
+const note = K.riso.text(card.el, "Dated in 2016 at 392 ± 120 years. Even the youngest estimate is older than the United States.", { x: 70, y: 560, w: 840, size: 34 });
+const ask = K.riso.text(card.el, "Would you take<br><em>400 years?</em>", { x: 64, y: 820, w: 880, size: 104, cls: "risoT blue" });
+const ask2 = K.riso.text(card.el, "If the first 150 were childhood.", { x: 70, y: 1080, w: 860, size: 44 });
+card.cues(T.card); K.cue(T.timeline, "draw", { dur: 0.9 }); K.cue(T.payoff, "chime"); K.cue(T.ask, "stamp");
+
+let hairState = [-1, -1];
+K.finish((t) => {
+  world.camera(cam(t));
+  const age = ageAt(t), bodyAge = age / 10;
+  const k = clamp(bodyAge / 15);
+  const spurt = t > T.puberty ? 1 + 0.06 * Math.exp(-(t - T.puberty) * 4) * Math.sin((t - T.puberty) * 14) : 1;
+  // sky: a day every 25 years while time races, then night once you're alone
+  let sky = 0.5 - 0.5 * Math.cos((2 * Math.PI * age) / 25);
+  sky = lerp(sky, 1, ease.inOutSine(seg(t, T.alone - 0.3, T.alone + 0.6)));
+  const inStroller = clamp((t - L(2) + 0.2) / 0.25) * (1 - clamp((t - L(3) + 0.1) / 0.25));
+  stroller.setAttribute("opacity", inStroller);
+  stroller.setAttribute("transform", `translate(0 ${20 * (1 - inStroller)})`);
+  // parents grey, stoop, then lift off the stage
+  const parentAge = 30 + age;
+  const hc = parentAge < 60 ? 0 : parentAge < 95 ? 1 : 2;
+  [mom, dad].forEach((p, i) => {
+    if (hairState[i] !== hc) { p.setHair(i ? "short" : "bun", ["#2a1f1d", "#8f8a84", "#e9e4da"][hc]); hairState[i] = hc; }
+    const lift = ease.inCubic(seg(t, T.gone, T.gone + 0.9));
+    p.root.style.opacity = 1 - lift;
+  });
+  const holdHand = clamp((t - L(3)) / 0.3) * (1 - clamp((t - L(4)) / 0.3));
+  const lean = clamp((parentAge - 60) / 40) * 7;
+  const lift = 260 * ease.inCubic(seg(t, T.gone, T.gone + 0.9));
+  park.update(t, { sky, cast: [
+    { s: lerp(0.42, 1.25, k) * spurt, hs: lerp(1.45, 1.05, k), y: 930 - (inStroller > 0.5 ? 26 : 0), head: 3 * Math.sin(t * 0.9), look: t > T.alone ? 0 : 0.3,
+      mouth: t > T.gone ? "flat" : "smile", brow: t > T.gone ? 8 : 0 },
+    { lean, y: 930 - lift, armF: lerp(-9, -38, holdHand), head: -4 },
+    { lean: lean * 0.8, y: 930 - lift, head: -6, look: -0.5 },
+  ] });
+  banner.at(t, T.banner, T.bannerOut);
+  const dv = (ageAt(t + 1 / 24) - age);
+  // whole numbers that click over quickly, so the digits are readable between ticks
+  const snap = (v) => Math.floor(v) + ease.inOutSine(clamp((v - Math.floor(v) - 0.8) / 0.2));
+  tAge.at(t, T.rule, snap(age), dv);
+  tBody.at(t, T.rule + 0.15, snap(bodyAge), dv / 10);
+  say1.at(t, T.gone - 0.1, L(5) - 0.5); say2.at(t, T.puberty, L(6) - 0.5); say3.at(t, T.alone, T.turnA + 0.1);
+  turn.at(t, T.turnA, T.turnB);
+
+  page.drift(t, T.turnA, T.end);
+  title.at(t, titleTimes);
+  sk.getElementById(clipId + "r").setAttribute("width", 920 * ease.inOutCubic(seg(t, T.shark, T.shark + 1.1)));
+  ring.setAttribute("stroke-dashoffset", 290 * (1 - ease.outCubic(seg(t, T.ring, T.ring + 0.45))));
+  const lu = ease.outCubic(seg(t, T.ring + 0.2, T.ring + 0.5));
+  ringLine.setAttribute("d", `M 196 768 L 196 ${768 + 124 * lu}`);
+  ringLab.at(t, T.ring + 0.45);
+  const [gv] = K.roll(t, T.grow, T.growEnd, 0, 150);
+  grow.at(t, T.grow - 0.2, gv, T.growEnd);
+  growLab.at(t, T.grow + 0.3);
+  bars.at(t, T.bars, T.barsVal);
+  card.at(t, T.card);
+  kick.at(t, T.card + 0.3);
+  const bu = ease.inOutCubic(seg(t, T.timeline, T.timeline + 0.9));
+  [band, bandTint].forEach((r) => r.setAttribute("width", (TX(1744) - TX(1504)) * bu));
+  usa.setAttribute("opacity", clamp((t - T.timeline - 0.6) / 0.2));
+  rangeLab.at(t, T.timeline + 0.5); note.at(t, T.payoff);
+  ask.at(t, T.ask); ask2.at(t, T.ask + 0.6);
+}, T.end);
+</script>
+</body>
+</html>
