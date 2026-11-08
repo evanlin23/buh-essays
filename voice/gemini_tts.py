@@ -1,0 +1,179 @@
+"""Gemini 3.8 Flash TTS: list voices and audition them two at a time.
+
+The API key is never read here. The session's network proxy adds the `x-goog-api-key` header to
+requests for generativelanguage.googleapis.com (saved as an environment network secret).
+
+  python -I gemini_tts.py check                         # free call: is the key live?
+  python -I gemini_tts.py voices OUT.json               # Extended Voice Library (no TTS quota)
+  python -I gemini_tts.py pair A B TEXT.txt OUTDIR [--style "..."] [--model gemini-3.8-flash-tts]
+
+`pair` makes ONE request with Gemini's two-speaker mode: voice A reads the text, then voice B reads
+the same text. It splits the result with Whisper word timings into OUTDIR/<A>.wav and OUTDIR/<B>.wav.
+Every TTS request is appended to requests.log; the script refuses to go past DAILY_LIMIT in 24 h.
+"""
+import base64, json, os, sys, time, urllib.error, urllib.request
+
+API = "https://generativelanguage.googleapis.com/v1beta"
+HERE = os.path.dirname(os.path.abspath(__file__))
+LOG = os.path.join(HERE, "out", "requests.log")
+DAILY_LIMIT = int(os.environ.get("GEMINI_TTS_DAILY_LIMIT", "10"))
+# The narrator prompt that won the 8 Nov 2026 match (see RESULTS.md). Use with voice "Algieba".
+DEFAULT_STYLE = ("Warm, intimate storyteller narrating a bittersweet animated short to one listener, quietly amused. "
+                 "Use a slightly higher, brighter part of your range than usual, with lots of melodic movement: "
+                 "lift into the key word of each line, then let every sentence fall all the way down and settle, "
+                 "almost into a soft creak. Brisk inside each phrase. Keep the pauses between sentences short, "
+                 "about half a second.")
+
+
+def http(method, url, body=None):
+    req = urllib.request.Request(url, method=method, data=None if body is None else json.dumps(body).encode(),
+                                 headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=300) as r:
+            return r.status, json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        txt = e.read().decode(errors="replace")
+        try:
+            return e.code, json.loads(txt)
+        except json.JSONDecodeError:
+            return e.code, {"error": {"message": txt[:500]}}
+
+
+def used_today():
+    if not os.path.exists(LOG):
+        return 0
+    now = time.time()
+    return sum(1 for line in open(LOG) if line.strip() and now - json.loads(line)["t"] < 86400)
+
+
+def log_request(entry):
+    os.makedirs(os.path.dirname(LOG), exist_ok=True)
+    with open(LOG, "a") as f:
+        f.write(json.dumps({"t": time.time(), **entry}) + "\n")
+
+
+def find_audio(obj):
+    """Last base64 audio blob anywhere in the response (docs: steps[].content[].data in the model_output step)."""
+    found = []
+    def walk(o):
+        if isinstance(o, dict):
+            mt = str(o.get("mime_type") or o.get("mimeType") or o.get("type") or "")
+            if isinstance(o.get("data"), str) and ("audio" in mt or len(o["data"]) > 1000):
+                found.append(o["data"])
+            for v in o.values():
+                walk(v)
+        elif isinstance(o, list):
+            for v in o:
+                walk(v)
+    walk(obj)
+    return base64.b64decode(found[-1]) if found else None
+
+
+def check():
+    code, d = http("GET", f"{API}/models?pageSize=200")
+    if code != 200:
+        print("key NOT active:", code, d.get("error", {}).get("message", "")[:200])
+        return 1
+    tts = [m["name"] for m in d.get("models", []) if "tts" in m["name"]]
+    print("key active. TTS models:", ", ".join(tts) or "(none listed)")
+    print(f"TTS requests used in the last 24 h: {used_today()}/{DAILY_LIMIT}")
+    return 0
+
+
+def voices(out):
+    allv, tok = [], None
+    while True:
+        code, d = http("GET", f"{API}/voices?page_size=1000" + (f"&page_token={tok}" if tok else ""))
+        if code != 200:
+            print("voices failed:", code, d.get("error", {}).get("message", "")[:300])
+            return 1
+        allv += d.get("voices", [])
+        tok = d.get("next_page_token") or d.get("nextPageToken")
+        if not tok:
+            break
+    json.dump(allv, open(out, "w"), indent=1)
+    print(f"{len(allv)} voices -> {out}")
+    return 0
+
+
+def split_by_text(wav_path, text, outA, outB):
+    """Cut a two-speaker take where the second reading starts (Whisper word timings)."""
+    import numpy as np, soundfile as sf
+    from faster_whisper import WhisperModel
+    y, sr = sf.read(wav_path)
+    if y.ndim > 1:
+        y = y.mean(1)
+    import librosa
+    y16 = librosa.resample(y.astype(np.float32), orig_sr=sr, target_sr=16000)
+    m = WhisperModel("small.en", device="cpu", compute_type="int8")
+    segs, _ = m.transcribe(y16, language="en", word_timestamps=True)
+    words = [w for s in segs for w in s.words]
+    norm = lambda s: "".join(c for c in s.lower() if c.isalnum())
+    head = [norm(w) for w in text.split()[:4]]
+    starts = [i for i in range(len(words) - 3) if [norm(words[i + k].word) for k in range(4)] == head]
+    if len(starts) < 2:
+        # fall back to the longest silence near the middle
+        gaps = [(words[i + 1].start - words[i].end, i) for i in range(len(words) - 1)
+                if 0.3 < words[i].end / (words[-1].end + 1e-9) < 0.7]
+        i = max(gaps)[1] + 1
+    else:
+        i = starts[1]
+    cut = (words[i - 1].end + words[i].start) / 2
+    k = int(cut * sr)
+    sf.write(outA, y[:k], sr)
+    sf.write(outB, y[k:], sr)
+    return cut
+
+
+def pair(a, b, text_file, outdir, style=DEFAULT_STYLE, model="gemini-3.8-flash-tts"):
+    n = used_today()
+    if n >= DAILY_LIMIT:
+        print(f"refusing: {n}/{DAILY_LIMIT} TTS requests already used in the last 24 h")
+        return 2
+    text = " ".join(open(text_file).read().split())
+    body = {
+        "model": model,
+        "input": [{"type": "user_input", "content": [
+            {"type": "text", "text": text, "annotations": [{"type": "speech_metadata", "speaker": "A", "style": style}]},
+            {"type": "text", "text": text, "annotations": [{"type": "speech_metadata", "speaker": "B", "style": style}]},
+        ]}],
+        "response_format": {"type": "audio"},
+        "generation_config": {"speech_config": {"speakers": [{"speaker": "A", "voice": a}, {"speaker": "B", "voice": b}]}},
+    }
+    t0 = time.time()
+    code, d = http("POST", f"{API}/interactions", body)
+    log_request({"model": model, "voices": [a, b], "status": code})
+    if code != 200:
+        print("TTS failed:", code, json.dumps(d)[:600])
+        return 1
+    audio = find_audio(d)
+    if not audio:
+        print("no audio in response; keys:", list(d)[:10])
+        json.dump(d, open(os.path.join(outdir, f"raw_{a}_{b}.json"), "w"))
+        return 1
+    os.makedirs(outdir, exist_ok=True)
+    both = os.path.join(outdir, f"pair_{a}_{b}.wav")
+    open(both, "wb").write(audio)
+    cut = split_by_text(both, text, os.path.join(outdir, f"{a}.wav"), os.path.join(outdir, f"{b}.wav"))
+    print(f"{a} + {b}: {len(audio) / 48000:.1f} s of audio in {time.time() - t0:.1f} s, split at {cut:.2f} s "
+          f"({used_today()}/{DAILY_LIMIT} requests used today)")
+    return 0
+
+
+if __name__ == "__main__":
+    cmd = sys.argv[1] if len(sys.argv) > 1 else ""
+    if cmd == "check":
+        sys.exit(check())
+    if cmd == "voices":
+        sys.exit(voices(sys.argv[2]))
+    if cmd == "pair":
+        args = sys.argv[2:]
+        kw = {}
+        for flag in ("--style", "--model"):
+            if flag in args:
+                i = args.index(flag)
+                kw[flag[2:]] = args[i + 1]
+                del args[i:i + 2]
+        sys.exit(pair(*args[:4], **kw))
+    print(__doc__)
+    sys.exit(2)
