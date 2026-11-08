@@ -296,11 +296,13 @@
     body.insertBefore(neckPin, head);
 
     function pose({ x = 0, y = 0, s = 1, flip = 1, lean = 0, head: hd = 0, armF: aF = 6, armB: aB = -6, legL: lL = 3, legR: lR = -3,
-      blink = 0, look = 0, mouth: m = "smile", brow = 0, sleep = false, bob = 0, hs = 1 } = {}) {
+      blink = 0, look = 0, mouth: m = "smile", brow = 0, sleep = false, bob = 0, hs = 1, sit = 0 } = {}) {
+      // sit 0..1: front-on cut-paper sitting. The body drops 60 units onto a seat at about y -64 and the thighs foreshorten.
       root.setAttribute("transform", `translate(${x} ${y}) scale(${s * flip} ${s})`);
-      body.setAttribute("transform", `translate(0 ${-bob}) rotate(${lean} 0 -120)`);
-      legL.setAttribute("transform", `translate(-17 -124) rotate(${lL})`);
-      legR.setAttribute("transform", `translate(17 -124) rotate(${lR})`);
+      body.setAttribute("transform", `translate(0 ${60 * sit - bob}) rotate(${lean} 0 -120)`);
+      const ls = 1 - 0.48 * sit;
+      legL.setAttribute("transform", `translate(${-17 - 6 * sit} -124) rotate(${lL}) scale(1 ${ls})`);
+      legR.setAttribute("transform", `translate(${17 + 6 * sit} -124) rotate(${lR}) scale(1 ${ls})`);
       armB.setAttribute("transform", `translate(-30 -226) rotate(${aB})`);
       armF.setAttribute("transform", `translate(30 -226) rotate(${aF})`);
       head.setAttribute("transform", `rotate(${hd} 0 -240) translate(0 -240) scale(${hs}) translate(0 240)`);

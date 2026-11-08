@@ -42,10 +42,14 @@ def http(method, url, body=None):
 
 
 def used_today():
+    """Requests since the last midnight Pacific: the free tier's daily quota resets then."""
     if not os.path.exists(LOG):
         return 0
-    now = time.time()
-    return sum(1 for line in open(LOG) if line.strip() and now - json.loads(line)["t"] < 86400)
+    import datetime
+    from zoneinfo import ZoneInfo
+    pt = datetime.datetime.now(ZoneInfo("America/Los_Angeles"))
+    since = pt.replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
+    return sum(1 for line in open(LOG) if line.strip() and json.loads(line)["t"] >= since and json.loads(line).get("status") == 200)
 
 
 def log_request(entry):
@@ -78,7 +82,7 @@ def check():
         return 1
     tts = [m["name"] for m in d.get("models", []) if "tts" in m["name"]]
     print("key active. TTS models:", ", ".join(tts) or "(none listed)")
-    print(f"TTS requests used in the last 24 h: {used_today()}/{DAILY_LIMIT}")
+    print(f"TTS requests used since midnight Pacific: {used_today()}/{DAILY_LIMIT}")
     return 0
 
 
@@ -133,7 +137,7 @@ def pair(a, b, text_file, outdir, style=DEFAULT_STYLE, style_b=None, names=None,
     na, nb = (names.split(",") if names else (a, b))
     n = used_today()
     if n >= DAILY_LIMIT:
-        print(f"refusing: {n}/{DAILY_LIMIT} TTS requests already used in the last 24 h")
+        print(f"refusing: {n}/{DAILY_LIMIT} TTS requests already used since midnight Pacific")
         return 2
     text = " ".join(open(text_file).read().split())
     body = {
@@ -169,7 +173,7 @@ def say(voice, text_file, out, style=DEFAULT_STYLE, model="gemini-3.8-flash-tts"
     """Single-speaker narration for production. Also writes OUT_words.json (Whisper word timings) for retiming scenes."""
     n = used_today()
     if n >= DAILY_LIMIT:
-        print(f"refusing: {n}/{DAILY_LIMIT} TTS requests already used in the last 24 h")
+        print(f"refusing: {n}/{DAILY_LIMIT} TTS requests already used since midnight Pacific")
         return 2
     text = " ".join(open(text_file).read().split())
     body = {"model": model,

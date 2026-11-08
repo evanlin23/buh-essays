@@ -65,6 +65,11 @@
     /* start of the k-th word inside line i (0-based), for word-by-word type */
     wordsOf(i) { const L = VO.lines[i]; return VO.words.filter((x) => x.s >= L.s - 0.01 && x.e <= L.e + 0.01).map((x) => x.s + VO.offset); },
     get end() { return VO.lines[VO.lines.length - 1].e + VO.offset; },
+    /* lines labelled {#name} in narration.txt: robust to inserting or deleting lines elsewhere */
+    lineOf(tag) { if (!(VO.tags && tag in VO.tags)) throw new Error(`narration has no {#${tag}}`); return VO.tags[tag]; },
+    tag(tag) { return K.vo.line(K.vo.lineOf(tag)); },
+    tagEnd(tag) { return K.vo.lineEnd(K.vo.lineOf(tag)); },
+    tagWord(tag, w, key) { return K.vo.at(K.vo.lineOf(tag), w, key); },
   };
 
   /* ---------------------------------------------------------------- camera keys */
@@ -93,6 +98,13 @@
         return s;
       },
       overlay(cls = "vignette") { return html("div", { class: cls }, root); },
+      /* a new layer drawn just BEHIND the layer that holds `el` (e.g. a chair behind a set's puppets) */
+      layerBehind(el, depth = 1.0) {
+        const s = w.layer(depth);
+        let ref = el; while (ref && !(ref.classList && ref.classList.contains("layer"))) ref = ref.parentNode;
+        if (ref) root.insertBefore(s.parentNode, ref);
+        return s;
+      },
       // camera: (x, y) is the world point at the centre of the frame; z zooms; each plane moves by its depth.
       camera({ x = 960, y = 540, z = 1 }) {
         layers.forEach(([el, d]) => {
@@ -109,7 +121,8 @@
   K.loc = {};
   /* Night bedroom: window with moon and hanging stars, clock, lamp, nightstand with a growing book stack, bed with
    * a sleeping partner, and you. update(t, {clock: minutes, tag: 0..1, books: n, you: puppet pose}). */
-  K.loc.bedroom = (w, { you = {}, partner = "#2a9d8f" } = {}) => {
+  K.loc.bedroom = (w, { you = {}, partner = "#2a9d8f", sleeper = {} } = {}) => {
+    // sleeper: whoever is in the bed. {hair, style: bun|short|bob|curly|thin, s (head scale, 0.8 for a child)}
     const C = { wall: "#263457", wall2: "#2e3e66", trim: "#3d4f80", cream: "#f6ecd9", kraft: "#d4a777", ink: "#1c1f2e",
       moon: "#f3e7c4", wood: "#7b4a36", woodDk: "#5e3829", floor: "#3a2e40", rug: "#5b3f63", curtain: "#cf8f2e" };
     const id = K.uid("bed");
@@ -197,11 +210,18 @@
     svg("rect", { x: 1180, y: 790, width: 20, height: 70, fill: C.woodDk }, bed);
     svg("rect", { x: 1820, y: 790, width: 20, height: 70, fill: C.woodDk }, bed);
     svg("ellipse", { cx: 1390, cy: 660, rx: 120, ry: 44, fill: C.cream, filter: "url(#card1)" }, Lb);
-    const ph = svg("g", { filter: "url(#card1)" }, Lb);
+    const SL = Object.assign({ hair: "#2a1f1d", style: "bun", s: 1 }, sleeper);
+    const ph = svg("g", { filter: "url(#card1)", transform: `translate(1392 640) scale(${SL.s}) translate(-1392 -640)` }, Lb);
     svg("circle", { cx: 1392, cy: 628, r: 42, fill: C.kraft }, ph);
-    svg("path", { d: "M 1350 628 Q 1346 578 1392 576 Q 1438 578 1434 628 Q 1426 600 1392 598 Q 1360 600 1350 628 Z", fill: "#2a1f1d" }, ph);
-    svg("circle", { cx: 1428, cy: 584, r: 18, fill: "#2a1f1d" }, ph);
-    svg("path", { d: "M 1370 634 Q 1376 640 1382 634 M 1402 634 Q 1408 640 1414 634", stroke: C.ink, "stroke-width": 3.2, fill: "none", "stroke-linecap": "round" }, ph);
+    const hp = (d) => svg("path", { d, fill: SL.hair }, ph);
+    if (SL.style === "bun") { hp("M 1350 628 Q 1346 578 1392 576 Q 1438 578 1434 628 Q 1426 600 1392 598 Q 1360 600 1350 628 Z"); svg("circle", { cx: 1428, cy: 584, r: 18, fill: SL.hair }, ph); }
+    if (SL.style === "short") hp("M 1350 626 Q 1348 578 1392 578 Q 1436 578 1434 622 Q 1420 598 1390 600 Q 1362 602 1350 626 Z");
+    if (SL.style === "bob") hp("M 1346 650 Q 1340 576 1392 574 Q 1444 576 1438 650 L 1428 650 Q 1430 600 1392 598 Q 1354 600 1356 650 Z");
+    if (SL.style === "curly") [[1360, 596], [1380, 582], [1404, 582], [1424, 596], [1352, 616], [1432, 616]].forEach(([x, y]) => svg("circle", { cx: x, cy: y, r: 15, fill: SL.hair }, ph));
+    if (SL.style === "thin") hp("M 1352 628 Q 1354 604 1364 596 L 1366 610 Q 1358 616 1358 632 Z M 1432 628 Q 1430 604 1420 596 L 1418 610 Q 1426 616 1426 632 Z");
+    const shutEyes = svg("path", { d: "M 1370 634 Q 1376 640 1382 634 M 1402 634 Q 1408 640 1414 634", stroke: C.ink, "stroke-width": 3.2, fill: "none", "stroke-linecap": "round" }, ph);
+    const openEyes = svg("g", { opacity: 0 }, ph);
+    [1376, 1408].forEach((x) => { svg("ellipse", { cx: x, cy: 632, rx: 5, ry: 7, fill: C.ink }, openEyes); svg("circle", { cx: x + 1.6, cy: 629, r: 1.7, fill: "#fff8ea" }, openEyes); });
     svg("ellipse", { cx: 1366, cy: 648, rx: 7, ry: 4.5, fill: "#e98b6d", opacity: 0.45 }, ph);
     const blanket = svg("g", { filter: "url(#card3)" }, Lb);
     const bp = "M 1170 700 Q 1280 650 1450 668 Q 1600 640 1850 690 L 1850 800 Q 1500 830 1170 800 Z";
@@ -245,11 +265,15 @@
         b.setAttribute("transform", `translate(0 ${-28 * (1 - ease.outBack(u))})`);
       });
       blanket.setAttribute("transform", `translate(0 ${-2.2 * Math.sin(t * 1.9)})`);
+      const sl = s.sleeper ?? 1, eyes = s.sleeperEyes === "open";
+      if (ph.style.opacity !== String(sl)) ph.style.opacity = String(sl);
+      if (shutEyes.style.opacity !== (eyes ? "0" : "1")) { shutEyes.style.opacity = eyes ? "0" : "1"; openEyes.setAttribute("opacity", eyes ? 1 : 0); }
+      const zOn = (s.zs ?? 1) * sl * (eyes ? 0 : 1);
       zs.forEach((z, i) => {
         const p = (t * 0.45 + i / 3) % 1;
         z.setAttribute("x", 1440 + 40 * p + 10 * Math.sin(p * 6 + i));
         z.setAttribute("y", 600 - 160 * p);
-        z.setAttribute("opacity", Math.sin(Math.PI * p) * 0.95);
+        z.setAttribute("opacity", Math.sin(Math.PI * p) * 0.95 * zOn);
       });
       youP.pose(Object.assign({ x: 930, y: 912, s: 1.42, bob: 2.2 * Math.sin(t * 1.9 + 1), armF: -9 - 2 * Math.sin(t * 1.9), armB: 9 + 2 * Math.sin(t * 1.9 + 0.5) }, s.you || {}));
     }
@@ -366,6 +390,57 @@
     };
   };
 
+  /* Wooden crib with a baby's head on the mattress. Origin: floor centre. Returns {g, eyes(open)} */
+  K.prop.crib = (layer, { x = 0, y = 0, hair = "#3a2a22" } = {}) => {
+    const g = svg("g", { transform: `translate(${x} ${y})` }, layer);
+    const back = svg("g", { filter: "url(#card2)" }, g);
+    svg("rect", { x: -170, y: -250, width: 340, height: 16, rx: 6, fill: "#c9a06d" }, back);
+    svg("rect", { x: -150, y: -120, width: 300, height: 40, rx: 8, fill: "#f6ecd9" }, back);
+    const baby = svg("g", { filter: "url(#lift)" }, g);
+    svg("circle", { cx: 0, cy: -142, r: 30, fill: "#d4a777" }, baby);
+    svg("path", { d: "M -28 -150 Q -26 -176 0 -176 Q 26 -176 28 -150 Q 14 -164 0 -162 Q -14 -164 -28 -150 Z", fill: hair }, baby);
+    const shut = svg("path", { d: "M -14 -140 Q -9 -135 -4 -140 M 4 -140 Q 9 -135 14 -140", stroke: "#1c1f2e", "stroke-width": 3, fill: "none", "stroke-linecap": "round" }, baby);
+    const open = svg("g", { opacity: 0 }, baby);
+    [-9, 9].forEach((ex) => { svg("ellipse", { cx: ex, cy: -141, rx: 4, ry: 5.5, fill: "#1c1f2e" }, open); svg("circle", { cx: ex + 1.2, cy: -143, r: 1.3, fill: "#fff8ea" }, open); });
+    svg("path", { d: "M -120 -110 Q -60 -132 0 -118 Q 60 -132 120 -110 L 120 -80 L -120 -80 Z", fill: "#f2b134", filter: "url(#card1)" }, g);
+    const front = svg("g", { filter: "url(#card2)" }, g);
+    svg("rect", { x: -170, y: -80, width: 340, height: 18, rx: 6, fill: "#c9a06d" }, front);
+    for (let i = 0; i < 9; i++) svg("rect", { x: -160 + i * 40, y: -250, width: 10, height: 175, rx: 4, fill: "#d9b07a" }, front);
+    svg("rect", { x: -176, y: -260, width: 18, height: 260, rx: 6, fill: "#b8895a" }, front);
+    svg("rect", { x: 158, y: -260, width: 18, height: 260, rx: 6, fill: "#b8895a" }, front);
+    return { g, eyes(o) { shut.setAttribute("opacity", o ? 0 : 1); open.setAttribute("opacity", o ? 1 : 0); } };
+  };
+  /* Simple wooden chair, seat top at y - 64 (matches a sit=1 puppet standing at y). Draw it BEHIND the puppet. */
+  K.prop.chair = (layer, { x = 0, y = 0, color = "#7b4a36", s = 1 } = {}) => {
+    const g = svg("g", { filter: "url(#card2)", transform: `translate(${x} ${y}) scale(${s})` }, layer);
+    svg("rect", { x: -48, y: -190, width: 96, height: 14, rx: 6, fill: color }, g);
+    svg("rect", { x: -44, y: -190, width: 12, height: 130, fill: "#5e3829" }, g);
+    svg("rect", { x: 32, y: -190, width: 12, height: 130, fill: "#5e3829" }, g);
+    svg("rect", { x: -56, y: -72, width: 112, height: 14, rx: 5, fill: color }, g);
+    svg("rect", { x: -50, y: -60, width: 10, height: 60, fill: "#5e3829" }, g);
+    svg("rect", { x: 40, y: -60, width: 10, height: 60, fill: "#5e3829" }, g);
+    return g;
+  };
+  /* Paper music notes that float up from (x, y) while `on`. at(t, on) */
+  K.prop.notes = (layer, { x, y, n = 4, color = "#f6ecd9" }) => {
+    const glyphs = ["♪", "♫", "♪", "♬"];
+    const els = Array.from({ length: n }, (_, i) => {
+      const e = svg("text", { "font-family": "DejaVu Sans", "font-size": 46 + (i % 2) * 14, fill: color, filter: "url(#lift)", opacity: 0 }, layer);
+      e.textContent = glyphs[i % glyphs.length];
+      return e;
+    });
+    return {
+      at(t, on) {
+        els.forEach((e, i) => {
+          const p = (t * 0.35 + i / n) % 1;
+          e.setAttribute("x", x + 90 * p + 16 * Math.sin(p * 7 + i));
+          e.setAttribute("y", y - 220 * p);
+          e.setAttribute("opacity", (on * Math.sin(Math.PI * p)).toFixed(2));
+        });
+      },
+    };
+  };
+
   /* blinks every 2.3-3.4 s until `until` */
   K.blink = (t, until = 1e9, start = 1.9) => {
     let best = 0;
@@ -465,6 +540,57 @@
       cues(tA, tB) { K.cue(tA, "whoosh"); K.cue(tB - 0.05, "flap"); K.cue(tB, "world", { name: "riso" }); },
     };
   };
+
+  /* ---------------------------------------------------------------- director (long-form) */
+  /* shots: [{t, el, kind: "story" | "riso", enter: "cut" | "fade" | "turn"}] in time order. Each shot holds its world
+   * element (a K.world root or a K.riso.page root, both children of K.stage) until the next shot starts.
+   * "turn": the outgoing page swings away on the left hinge and shows the next one (either direction, any worlds).
+   * Worlds not on screen are display:none, so a 30-shot episode costs no more per frame than one scene. */
+  K.director = (shots) => {
+    const DUR = { cut: 0, fade: 0.45, turn: 0.8 };
+    const els = [...new Set(shots.map((s) => s.el))];
+    const cast = html("div", { style: { position: "absolute", inset: 0, pointerEvents: "none", zIndex: 40 } }, K.stage);
+    const shade = new Map(els.map((el) => [el, html("div", { style: { position: "absolute", inset: 0, pointerEvents: "none", background: "linear-gradient(90deg, rgba(0,0,0,0), rgba(0,0,0,0.65))", opacity: 0, zIndex: 99 } }, el)]));
+    els.forEach((el) => { el.style.transformOrigin = `0 ${K.H / 2}px`; el.style.backfaceVisibility = "hidden"; });
+    const set = (el, k, v) => { if (el.style[k] !== v) el.style[k] = v; };
+    const api = {
+      shots,
+      index(t) { let i = 0; while (i + 1 < shots.length && t >= shots[i + 1].t) i++; return i; },
+      current(t) { return shots[api.index(t)]; },
+      at(t) {
+        const i = api.index(t), cur = shots[i], prev = shots[i - 1];
+        const d = DUR[cur.enter || "cut"], u = d ? clamp((t - cur.t) / d) : 1;
+        const inTx = prev && prev.el !== cur.el && u < 1;
+        els.forEach((el) => {
+          const on = el === cur.el || (inTx && el === prev.el);
+          set(el, "display", on ? "block" : "none");
+          if (!on) return;
+          set(el, "zIndex", el === cur.el ? (inTx && cur.enter === "turn" ? "1" : "2") : (cur.enter === "turn" ? "2" : "1"));
+          set(el, "opacity", el === cur.el && inTx && cur.enter === "fade" ? String(ease.inOutSine(u)) : "1");
+          let tf = "none";
+          if (inTx && cur.enter === "turn" && el === prev.el) tf = `rotateY(${96 * ease.inOutSine(u)}deg)`;
+          set(el, "transform", tf);
+          shade.get(el).style.opacity = inTx && cur.enter === "turn" && el === prev.el ? Math.sin((Math.PI / 2) * ease.inOutSine(u)) * 0.85 : 0;
+        });
+        if (inTx && cur.enter === "turn") {
+          const uu = ease.inOutSine(u), edge = K.W * Math.cos((96 * uu * Math.PI) / 180);
+          cast.style.display = "block";
+          cast.style.background = `linear-gradient(90deg, rgba(40,30,20,${0.55 * (1 - uu)}) 0px, rgba(40,30,20,${0.3 * (1 - uu)}) ${Math.max(0, edge)}px, rgba(40,30,20,0) ${Math.max(0, edge) + 260 + 500 * uu}px)`;
+        } else cast.style.display = "none";
+        return { shot: cur, i, u };
+      },
+      cues() {
+        shots.forEach((s, i) => {
+          if (i && s.enter === "turn") { K.cue(s.t, "whoosh"); K.cue(s.t + DUR.turn - 0.05, "flap"); }
+          if (i && s.enter === "fade") K.cue(s.t, "slide");
+          if (!i || s.kind !== shots[i - 1].kind) K.cue(s.t + (s.enter === "turn" ? DUR.turn : 0), "world", { name: s.kind || "story" });
+        });
+      },
+    };
+    return api;
+  };
+  /* A screen-space layer above every world, for tickets, captions and titles that persist across shots. */
+  K.hud = () => html("div", { style: { position: "absolute", inset: 0, zIndex: 60, pointerEvents: "none" } }, K.stage);
 
   /* ---------------------------------------------------------------- riso pages */
   const BLUE = "#0078bf", PINK = "#ff48b0", YELLOW = "#ffd400", PAPER = "#f3ebdb";

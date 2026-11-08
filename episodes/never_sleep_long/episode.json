@@ -1,0 +1,18 @@
+{
+  "slug": "never_sleep_long",
+  "format": "long",
+  "voice": "Algieba",
+  "style": null,
+  "cover_t": 2.0,
+  "jobs": 3,
+  "status": "script drafted; facts pending; scene to build",
+  "package": {
+    "title": "What If You Never Had to Sleep?",
+    "alt_titles": ["You Never Sleep Again. Here's Your Whole Life.", "What If You Got Back the 26 Years You Spend Asleep?"],
+    "description": ["(filled in after the fact-check)", "Sources:\n{sources}"],
+    "sources": [],
+    "hashtags": ["#whatif", "#sleep", "#science"],
+    "tags": ["what if", "what if you never slept", "never sleep", "sleep science", "DEC2", "Randy Gardner", "short sleeper", "animation", "buh essays"],
+    "pinned": "Would you take the 26 extra years, knowing everyone you love would be asleep for a third of them?"
+  }
+}

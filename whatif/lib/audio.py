@@ -117,29 +117,40 @@ def main(cues_path, out):
             m.add(t, m.bell(hz("F6"), 2.2), 0.12, 0.2)
             m.add(t, m.bell(hz("C6"), 2.0), 0.08, -0.2)
 
-    # Bed: a music-box lullaby in the bedroom, a plucked figure on the riso page, both at 80 BPM.
+    # Bed: a music-box lullaby in story shots and a plucked figure on riso pages, both at 80 BPM.
+    # Segments come from "world" cues (name story/riso); older scenes switch once at the page-turn whoosh.
     beat = 0.75
-    turn = next((c["t"] for c in spec["cues"] if c["type"] == "world" and c.get("name") == "riso"),
-                next((c["t"] for c in spec["cues"] if c["type"] == "whoosh"), dur + 1)) - off
+    worlds = sorted((c["t"] - off, c.get("name", "story")) for c in spec["cues"] if c["type"] == "world")
+    if not worlds:
+        w0 = next((c["t"] for c in spec["cues"] if c["type"] == "whoosh"), None)
+        worlds = [(0.0, "story")] + ([(w0 - off + 0.6, "riso")] if w0 is not None else [])
+    if worlds[0][0] > 0.01:
+        worlds = [(0.0, "story")] + worlds
+    segs = [(a, (worlds[i + 1][0] if i + 1 < len(worlds) else dur + 0.5), k) for i, (a, k) in enumerate(worlds)]
     lull = ["A5", "C6", "F5", "E5", "D5", "C5", "A4", "C5"]
-    b = 0
-    while b * beat < turn + 0.2:
-        t = b * beat
-        m.add(t, m.bell(hz(lull[b % len(lull)]), 1.6), 0.075 * min(1, t / 0.6 + 0.35), 0.15)
-        if b % 4 == 0:
-            m.add(t, m.pad("F2 C3 A3" if (b // 4) % 2 == 0 else "D2 A2 F3", 3.2, 0.4, 0.5), 0.12)
-        b += 1
     chords = ["D3 F3 A3", "A#2 D3 F3", "F3 A3 C4", "C3 E3 G3"]
     arp = [0, 1, 2, 1]
-    b = 0
-    while turn + 0.6 + b * beat / 2 < dur:
-        t = turn + 0.6 + b * beat / 2
-        ch = chords[(b // 8) % 4].split()
-        m.add(t, m.pluck(hz(ch[arp[b % 4]][:-1] + str(int(ch[arp[b % 4]][-1]) + 2)), 0.4, 10), 0.05, 0.25 * np.sin(b))
-        if b % 8 == 0:
-            m.add(t, m.pad(" ".join(ch), 3.2, 0.3, 0.6), 0.1)
-        b += 1
-    room = low(m.noise(dur + 0.5), 500) * 0.004
+    for a, z, kind in segs:
+        b = 0
+        if kind == "story":
+            # the lullaby keeps its place in the bar across cuts, so returning to a story world feels continuous
+            b = int(np.ceil(a / beat))
+            while b * beat < z:
+                t = b * beat
+                m.add(t, m.bell(hz(lull[b % len(lull)]), 1.6), 0.075 * min(1, t / 0.6 + 0.35), 0.15)
+                if b % 4 == 0:
+                    m.add(t, m.pad("F2 C3 A3" if (b // 4) % 2 == 0 else "D2 A2 F3", 3.2, 0.4, 0.5), 0.12)
+                b += 1
+        else:
+            b = int(np.ceil(a / (beat / 2)))
+            while b * beat / 2 < z:
+                t = b * beat / 2
+                ch = chords[(b // 8) % 4].split()
+                m.add(t, m.pluck(hz(ch[arp[b % 4]][:-1] + str(int(ch[arp[b % 4]][-1]) + 2)), 0.4, 10), 0.05, 0.25 * np.sin(b))
+                if b % 8 == 0:
+                    m.add(t, m.pad(" ".join(ch), 3.2, 0.3, 0.6), 0.1)
+                b += 1
+    room = low(m.rng.standard_normal(m.n), 500) * 0.004   # exactly m.n samples, whatever the duration
     m.L += room
     m.R += room[::-1]
 

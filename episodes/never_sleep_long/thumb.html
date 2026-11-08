@@ -1,0 +1,28 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Never sleep thumbnail</title><link rel="stylesheet" href="../../whatif/lib/stage.css">
+<style>
+  .thumbT { position: absolute; font-family: "Fraunces"; font-weight: 900; color: #1c1f2e; line-height: 0.92; letter-spacing: -0.02em; }
+  .thumbT em { color: #e4572e; font-style: normal; }
+</style></head>
+<body><div id="stage"></div>
+<script src="../../whatif/lib/stage.js"></script><script src="../../whatif/lib/kit.js"></script>
+<script>
+/* 1920x1080 thumbnail (exported at 1280x720): wide-awake face at 3 a.m., three words on a hanging card. */
+K.init({ format: "long", grain: 0.18 });
+const w = K.world(K.stage);
+const room = K.loc.bedroom(w, { sleeper: { hair: "#2a1f1d", style: "bun" } });
+// card on strings, right third
+const card = PT.html("div", { style: { position: "absolute", left: "1090px", top: "150px", width: "760px", height: "560px", transform: "rotate(2deg)" } }, K.stage);
+{
+  const s = PT.svg("svg", { width: 780, height: 560, viewBox: "0 0 780 560", style: "position:absolute;inset:0;overflow:visible" }, card);
+  [120, 660].forEach((x) => PT.svg("line", { x1: x, y1: -400, x2: x, y2: 40, stroke: "#cdbf9f", "stroke-width": 3 }, s));
+  PT.svg("path", { d: "M 24 20 H 756 L 772 44 V 520 L 750 544 L 390 528 L 30 544 L 8 520 V 44 Z", fill: "#f3e6cc", filter: "url(#card3)" }, s);
+  [120, 660].forEach((x) => PT.svg("circle", { cx: x, cy: 40, r: 12, fill: "url(#brass)" }, s));
+}
+PT.html("div", { class: "thumbT", html: "<em>26</em><br>extra<br>years", style: { left: "80px", top: "70px", fontSize: "150px" } }, card);
+K.finish((t) => {
+  w.camera({ x: 1110, y: 530, z: 1.9 });
+  room.update(1.0, { clock: 3 * 60, tag: 1, tagText: "3:00 A.M.", books: 6,
+    you: { x: 930, head: 6, look: 0.5, brow: 16, mouth: "o", blink: 0 } });
+}, 1);
+</script></body></html>

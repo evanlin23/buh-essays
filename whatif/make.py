@@ -37,12 +37,37 @@ def norm(w):
     return re.sub(r"[^a-z0-9]", "", w.lower())
 
 
+TAG = re.compile(r"\s*\{#([\w-]+)\}\s*$")
+
+
+def parse_script(E):
+    """narration.txt -> paragraphs of spoken lines, plus chapters ("## Title" lines) and {#tag} line labels."""
+    text = open(os.path.join(E["dir"], "narration.txt")).read().strip()
+    paras, lines, chapters, tags = [], [], [], {}
+    for block in re.split(r"\n\s*\n", text):
+        cur = []
+        for raw in block.splitlines():
+            raw = raw.strip()
+            if not raw:
+                continue
+            if raw.startswith("## "):
+                chapters.append({"title": raw[3:].strip(), "line": len(lines)})
+                continue
+            m = TAG.search(raw)
+            if m:
+                tags[m.group(1)] = len(lines)
+                raw = TAG.sub("", raw)
+            lines.append(raw); cur.append(raw)
+        if cur:
+            paras.append(cur)
+    return paras, lines, chapters, tags
+
+
 def narrate(E, force=False):
     import numpy as np, soundfile as sf
     import gemini_tts
-    text = open(os.path.join(E["dir"], "narration.txt")).read().strip()
-    paras = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
-    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    paras, lines, chapters, tags = parse_script(E)
+    paras = ["\n".join(p) for p in paras]
     voice = E.get("voice", "Algieba")
     style = E.get("style") or gemini_tts.DEFAULT_STYLE
     model = E.get("model", "gemini-3.8-flash-tts")
@@ -99,7 +124,7 @@ def narrate(E, force=False):
             e = words[m[last]]["e"] + 0.32 * (idx[-1] - last)
         L.append({"text": l, "s": round(s, 3), "e": round(e, 3)})
         prev_e = e
-    vo = {"src": "narration.m4a", "offset": VO_OFFSET, "words": words, "lines": L}
+    vo = {"src": "narration.m4a", "offset": VO_OFFSET, "words": words, "lines": L, "chapters": chapters, "tags": tags}
     open(os.path.join(E["dir"], "vo.js"), "w").write(
         f"// Narration timing, written by make.py narrate. Voice: {voice} ({model}).\nwindow.VO = " + json.dumps(vo, separators=(",", ":")) + ";\n")
     print(f"narration: {len(full) / sr:.1f} s, {len(words)} words, {len(L)} lines -> vo.js")
@@ -109,10 +134,10 @@ def narrate(E, force=False):
 
 def fakevo(E, wpm=140):
     """Estimated timings straight from the script (no audio, no quota) for laying out and checking a scene."""
-    text = open(os.path.join(E["dir"], "narration.txt")).read().strip()
+    paras, lines, chapters, tags = parse_script(E)
     words, L, t = [], [], 0.0
-    for para in re.split(r"\n\s*\n", text):
-        for l in [x.strip() for x in para.splitlines() if x.strip()]:
+    for para in paras:
+        for l in para:
             s0 = t
             for w in l.split():
                 d = 60 / wpm * max(0.6, len(norm(w)) / 4.5)
@@ -122,9 +147,9 @@ def fakevo(E, wpm=140):
                     t += 0.25 if w[-1] == "," else 0.45
             L.append({"text": l, "s": round(s0, 3), "e": round(t - 0.4, 3)})
         t += GAP
-    vo = {"src": None, "offset": VO_OFFSET, "words": words, "lines": L}
+    vo = {"src": None, "offset": VO_OFFSET, "words": words, "lines": L, "chapters": chapters, "tags": tags}
     open(os.path.join(E["dir"], "vo.js"), "w").write("// ESTIMATED timing (make.py fakevo): no narration yet.\nwindow.VO = " + json.dumps(vo) + ";\n")
-    print(f"fake narration: {t:.1f} s, {len(L)} lines -> vo.js (run `narrate` for the real thing)")
+    print(f"fake narration: {t:.1f} s, {len(L)} lines, {len(chapters)} chapters -> vo.js (run `narrate` for the real thing)")
 
 
 def node(*args):
@@ -172,6 +197,14 @@ def qa(E):
     return ok
 
 
+def load_vo(E):
+    f = os.path.join(E["dir"], "vo.js")
+    if not os.path.exists(f):
+        return None
+    txt = open(f).read()
+    return json.loads(txt[txt.index("{"): txt.rindex("}") + 1])
+
+
 def package(E):
     # upload copy: visually lossless for YouTube's re-encode, a fraction of the CRF 14 master's size
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", os.path.join(E["out"], "video.mp4"), "-c:v", "libx264", "-preset", "slow", "-crf", "19", "-maxrate", "24M", "-bufsize", "48M",
@@ -182,10 +215,21 @@ def package(E):
     P = E["package"]
     src = "\n".join(f"- {s}" for s in P.get("sources", []))
     desc = "\n\n".join(P["description"]).replace("{sources}", src)
+    vo = load_vo(E)
+    if vo and vo.get("chapters") and E.get("format") == "long":
+        stamp = lambda x: f"{int(x // 60)}:{int(x % 60):02d}"
+        ch = [(0.0 if i == 0 else vo["lines"][c["line"]]["s"] + vo["offset"], c["title"]) for i, c in enumerate(vo["chapters"])]
+        desc += "\n\nChapters:\n" + "\n".join(f"{stamp(t)} {title}" for t, title in ch)
+    thumb = os.path.join(E["dir"], "thumb.html")
+    if os.path.exists(thumb):
+        node(thumb, os.path.join(E["out"], "thumbsrc"), "--stills", "0")
+        from PIL import Image
+        f = os.path.join(E["out"], "thumbsrc", "still_0_00.png")
+        Image.open(f).convert("RGB").resize((1280, 720), Image.LANCZOS).save(os.path.join(E["out"], "thumbnail.jpg"), quality=92, optimize=True)
     tags = ", ".join(P.get("tags", []))
     md = f"""# Upload kit: {E['slug']}
 
-**Format:** {E.get('format', 'short')} · **File:** `renders/{E['slug']}/upload.mp4` · **Cover:** `renders/{E['slug']}/cover.png`
+**Format:** {E.get('format', 'short')} · **File:** `renders/{E['slug']}/upload.mp4` · **Cover:** `renders/{E['slug']}/{'thumbnail.jpg' if os.path.exists(os.path.join(E['out'], 'thumbnail.jpg')) else 'cover.png'}`
 
 ## Title
 {P['title']}
