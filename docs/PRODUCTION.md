@@ -40,6 +40,14 @@ One episode is one folder in `episodes/`. One command takes it from script to up
 
 Sound comes from cues: every component pushes its own (pop, flap, tick, stamp, whoosh, fill, chime). `whatif/lib/audio.py` turns them into paper foley, puts a two-world music bed under the dry narration, and masters to −14 LUFS.
 
+## Keeping renders fast
+
+A healthy scene costs about 0.8 s per frame in one browser page. If `stills` feels slow, time a frame before you render:
+
+- **`seek(t)` must be cheap.** A loop that ran to "forever" inside the blink helper once cost 12 s per frame, and no layer change could fix it.
+- **Anything that changes per frame lives on its own small layer.** Big paper-textured shapes (skies, walls, hills) go on static layers that Chrome rasterises once. Fade or move them with CSS on the layer, never by editing the SVG inside them.
+- **Only write a value when it changes.** Setting an attribute to the same value can still force a repaint.
+
 ## Shorts safe zone
 
 On a phone, the Shorts interface covers the bottom fifth of the frame (title, channel name) and a strip down the right edge (buttons). Keep captions, counters and questions between y ≈ 250 and 1500, and x < 940.

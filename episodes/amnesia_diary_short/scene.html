@@ -1,0 +1,127 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Amnesia diary (Short)</title>
+<link rel="stylesheet" href="../../whatif/lib/stage.css">
+<style>
+  .diary { font-family: "Fraunces"; font-style: italic; font-weight: 600; color: #0078bf; mix-blend-mode: multiply; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script src="../../whatif/lib/stage.js"></script>
+<script src="../../whatif/lib/kit.js"></script>
+<script src="vo.js"></script>
+<script>
+/* What if the person you love forgot everything every few seconds? From the spouse's side. Lines = narration.txt. */
+const { lerp, clamp, seg, ease, spring, svg, html } = PT;
+K.init({ format: "short" });
+const V = K.vo, L = (i) => V.line(i), LE = (i) => V.lineEnd(i);
+
+const T = {
+  banner: L(0) - 0.05, bannerOut: LE(0) + 0.35, except: L(1), walk: L(2),
+  turnA: L(3) - 0.15, e1: L(4), e2: L(5), e3: L(6), cross: L(7),
+  card: L(8) - 0.2, real: L(8), seconds: L(9), deborah: V.at(9, "deborah"), piano: L(10), ask: L(11),
+};
+T.turnB = T.turnA + 0.8;
+T.end = LE(11) + 1.9;
+
+/* each time you walk in: at the start of lines 1 and 2, and halfway through line 2 */
+const ENTRANCES = [T.except, T.walk, (T.walk + LE(2)) / 2];
+const lastEntrance = (t) => ENTRANCES.filter((e) => e <= t).pop();
+
+/* ---- story world: a park in the afternoon */
+const turn = K.turn();
+const world = K.world(turn.A);
+const park = K.loc.park(world, { cast: [
+  { x: 1280, shirt: "#7b4b94", hair: "#3b2a22", hairStyle: "short", glasses: true },   // him
+  { x: 900, shirt: "#2a9d8f", hair: "#2a1f1d", hairStyle: "bun" },                    // you
+] });
+const [him, you] = park.people.map((q) => q.p);
+const heartLayer = world.layer(1.0);
+const hearts = ENTRANCES.map(() => svg("path", { d: "M 0 12 C -30 -10 -22 -40 0 -26 C 22 -40 30 -10 0 12 Z", fill: "#e4572e", filter: "url(#card1)", opacity: 0 }, heartLayer));
+const cam = K.keys([[0, { x: 1150, y: 600, z: 1.0 }], [T.walk, { x: 1160, y: 610, z: 1.06 }], [T.turnA, { x: 1180, y: 600, z: 1.12 }]]);
+
+const banner = K.banner(turn.A, ["What if the", "person you love", "*forgot everything?*"], { x: 60, y: 70, w: 960, size: 90 });
+const tick = K.ticket(turn.A, { x: 250, y: 150, w: 580, label: "TIMES HE'S MET YOU TODAY", sub: "each one, for the first time", digits: 2 });
+const say1 = K.say(turn.A, "Everything except you.", { y: 1290, size: 72 });
+banner.cues(T.banner, T.bannerOut); K.cue(T.except - 0.1, "flap"); say1.cues(T.except);
+ENTRANCES.forEach((e) => { K.cue(e + 0.55, "pop"); K.cue(e, "clunk"); });
+turn.cues(T.turnA, T.turnB);
+
+/* ---- the diary, in riso ink */
+const page = K.riso.page(turn.B, { header: "His diary", page: "" });
+const lines = svg("svg", { width: 1080, height: 1920, viewBox: "0 0 1080 1920", style: "position:absolute;inset:0" }, page.inner);
+for (let y = 360; y < 1500; y += 92) svg("line", { x1: 90, y1: y, x2: 990, y2: y, stroke: "#0078bf", "stroke-width": 1.5, opacity: 0.28, class: "mul" }, lines);
+svg("line", { x1: 170, y1: 300, x2: 170, y2: 1500, stroke: "#ff48b0", "stroke-width": 2, opacity: 0.5, class: "mul" }, lines);
+const ENTRIES = [["2:10 P.M.", "This time properly awake."], ["2:14 P.M.", "This time finally awake."], ["2:35 P.M.", "This time completely awake."]];
+const entryT = [T.e1, T.e2, T.e3];
+const entries = ENTRIES.map(([time, text], i) => {
+  const y = 430 + i * 276;
+  const tEl = K.riso.text(page.inner, time, { x: 196, y, w: 760, size: 40, cls: "riso-num" });
+  const xEl = K.riso.text(page.inner, text, { x: 196, y: y + 66, w: 800, size: 64, cls: "diary" });
+  const strike = svg("path", { d: `M 186 ${y + 60} L 186 ${y + 60}`, stroke: "#ff48b0", "stroke-width": 10, "stroke-linecap": "round", fill: "none", class: "mul" }, lines);
+  return { tEl, xEl, strike, y };
+});
+ENTRIES.forEach((_, i) => { K.cue(entryT[i], "stamp", { soft: 1 }); K.cue(entryT[i] + 0.45, "draw", { dur: 0.35 }); if (i) K.cue(entryT[i] - 0.1, "draw", { dur: 0.4 }); });
+const crossNote = K.riso.text(page.inner, "Hundreds of pages like this.", { x: 196, y: 1300, w: 800, size: 44, cls: "riso-body" });
+K.cue(T.cross, "stamp", { soft: 1 });
+
+/* ---- what's real */
+const card = K.riso.card(turn.B, { x: 50, y: 120, w: 980, h: 1690 });
+const kick = K.riso.text(card.el, "Clive Wearing, English musician", { x: 70, y: 80, w: 860, size: 30, cls: "riso-label" });
+const f1 = K.riso.text(card.el, "<em>1985:</em> a brain infection, herpes encephalitis.", { x: 64, y: 160, w: 860, size: 58, cls: "risoT blue" });
+const f2 = K.riso.text(card.el, "Memory span: <em>seconds.</em>", { x: 64, y: 380, w: 860, size: 58, cls: "risoT blue" });
+const f3 = K.riso.text(card.el, "He always knew his wife, <em>Deborah.</em>", { x: 64, y: 520, w: 860, size: 58, cls: "risoT blue" });
+// a strip of riso piano keys
+const keys = svg("svg", { width: 980, height: 1690, viewBox: "0 0 980 1690", style: "position:absolute;inset:0" }, card.el);
+const kg = svg("g", { filter: "url(#ink)", opacity: 0 }, keys);
+for (let i = 0; i < 14; i++) svg("rect", { x: 70 + i * 60, y: 760, width: 56, height: 220, rx: 4, fill: "none", stroke: "#0078bf", "stroke-width": 3, class: "mul" }, kg);
+[0, 1, 3, 4, 5, 7, 8, 10, 11, 12].forEach((i) => svg("rect", { x: 70 + i * 60 + 38, y: 760, width: 38, height: 130, fill: "url(#dotsBlue)", class: "mul" }, kg));
+const f4 = K.riso.text(card.el, "And he could still play.", { x: 70, y: 1010, w: 860, size: 46 });
+const ask = K.riso.text(card.el, "If you could keep one thing, <em>what would you keep?</em>", { x: 64, y: 1110, w: 880, size: 84, cls: "risoT blue" });
+card.cues(T.card); K.cue(T.real + 0.4, "stamp"); K.cue(T.seconds, "stamp"); K.cue(T.deborah, "chime"); K.cue(T.piano, "grow", { dur: 0.6 }); K.cue(T.ask, "stamp");
+
+K.finish((t) => {
+  world.camera(cam(t));
+  const e = lastEntrance(t);
+  // you walk in from the left each time; between visits you step back out of frame
+  const ins = ENTRANCES.map((en, i) => {
+    const next = ENTRANCES[i + 1] ?? T.turnA + 5;
+    return ease.outCubic(seg(t, en - 0.6, en)) * (1 - ease.inCubic(seg(t, next - 1.1, next - 0.6)));
+  });
+  const inNow = Math.max(0, ...ins);
+  const sinceE = e === undefined ? 0 : t - e;
+  const light = e === undefined ? 0 : Math.exp(-sinceE * 0.6) * clamp(sinceE / 0.25);
+  park.update(t, { sky: 0.15, cast: [
+    { mouth: light > 0.5 ? "o" : "smile", brow: 4 + 14 * light, look: -0.6 * inNow, head: -5 * inNow, armF: -9 - 30 * light },
+    { x: lerp(620, 1080, inNow), look: 0.6, armF: -9, armB: 9 + 24 * inNow * (1 - light) },
+  ] });
+  hearts.forEach((h, i) => {
+    const u = spring(t - ENTRANCES[i] - 0.5, 0.5, 1.4), fade = clamp(1 - (t - ENTRANCES[i] - 1.6) / 0.5);
+    h.setAttribute("opacity", t > ENTRANCES[i] + 0.5 ? fade : 0);
+    h.setAttribute("transform", `translate(1290 ${470 - 60 * clamp((t - ENTRANCES[i] - 0.5) / 1.6)}) scale(${1.6 * u})`);
+  });
+  banner.at(t, T.banner, T.bannerOut);
+  const met = ENTRANCES.reduce((a, en) => a + ease.inOutSine(seg(t, en + 0.3, en + 0.6)), 0);
+  tick.at(t, T.except - 0.1, met, 0);
+  say1.at(t, T.except, T.walk - 0.3);
+  turn.at(t, T.turnA, T.turnB);
+
+  page.drift(t, T.turnA, T.end);
+  entries.forEach((en, i) => {
+    en.tEl.at(t, entryT[i]); en.xEl.at(t, entryT[i] + 0.15);
+    const next = entryT[i + 1];
+    const su = next ? ease.inOutCubic(seg(t, next - 0.1, next + 0.3)) : 0;
+    en.strike.setAttribute("d", `M 186 ${en.y + 112} L ${186 + 800 * su} ${en.y + 98}`);
+    en.strike.setAttribute("opacity", su > 0 ? 1 : 0);
+  });
+  crossNote.at(t, T.cross);
+  card.at(t, T.card);
+  kick.at(t, T.card + 0.3); f1.at(t, T.real + 0.4); f2.at(t, T.seconds); f3.at(t, T.deborah - 0.3);
+  kg.setAttribute("opacity", clamp((t - T.piano) / 0.3)); f4.at(t, T.piano + 0.2); ask.at(t, T.ask);
+}, T.end);
+</script>
+</body>
+</html>
