@@ -1,0 +1,36 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Classroom set test</title><link rel="stylesheet" href="../lib/stage.css"></head>
+<body><div id="stage"></div>
+<script src="../lib/stage.js"></script><script src="../lib/kit.js"></script><script src="../lib/sets/classroom.js"></script>
+<script>
+/* Test card for K.loc.classroom.
+ * Long (default): t = 0 the teacher is writing, 1 the board is done and a hand goes up, 2 dusk with a new line.
+ * #short: the vertical framing visits the anchors: t = 0 board, 1 middle desk, 2 teacher, 3 window (night), 4 clock. */
+const SHORT = location.hash === "#short";
+K.init({ format: SHORT ? "short" : "long" });
+const w = K.world(K.stage);
+const room = K.loc.classroom(w, { cast: [
+  { x: 1420, shirt: "#7b4b94", hair: "#2a1f1d", hairStyle: "bun", glasses: true },   // teacher
+  { desk: 0, shirt: "#e4572e", hair: "#3a2a22", hairStyle: "curly" },
+  { desk: 1, shirt: "#f2b134", hair: "#6b3d24", hairStyle: "bob" },
+  { desk: 2, shirt: "#5aa9e6", hair: "#2a1f1d", hairStyle: "short" },
+] });
+const A = room.anchors;
+const shots = [A.board, { x: A.desks[1].x, y: 600, z: 1.1 }, A.teacher, A.window, A.clock];
+K.finish((t) => {
+  w.camera(SHORT ? shots[Math.min(shots.length - 1, Math.round(t))] : { x: 960, y: 540, z: 1 });
+  const late = t >= 1.5;
+  room.update(t, {
+    sky: PT.clamp(t - 1.45),
+    clock: 8 * 60 + 50 + t * 260,
+    board: late ? "What if you\nnever slept?" : "8 hours × 365 nights\n= 2,920 hours",
+    boardU: late ? PT.clamp((t - 1.5) * 1.6) : 0.45 + 0.55 * t,
+    cast: [
+      { armB: 128, armF: -6, look: -1, mouth: late ? "o" : "smile", brow: late ? 6 : 0 },
+      { look: 1 },
+      { armF: t >= 0.9 ? -150 : 14, mouth: t >= 0.9 ? "o" : "smile", look: 1, brow: t >= 0.9 ? -6 : 0 },
+      { look: -1, mouth: late ? "flat" : "smile" },
+    ],
+  });
+}, 5);
+</script></body></html>

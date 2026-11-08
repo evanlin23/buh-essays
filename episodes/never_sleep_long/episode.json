@@ -5,14 +5,44 @@
   "style": null,
   "cover_t": 2.0,
   "jobs": 3,
-  "status": "script drafted; facts pending; scene to build",
+  "status": "script fact-checked; scene built; needs narration (5 requests)",
   "package": {
-    "title": "What If You Never Had to Sleep?",
-    "alt_titles": ["You Never Sleep Again. Here's Your Whole Life.", "What If You Got Back the 26 Years You Spend Asleep?"],
-    "description": ["(filled in after the fact-check)", "Sources:\n{sources}"],
-    "sources": [],
-    "hashtags": ["#whatif", "#sleep", "#science"],
-    "tags": ["what if", "what if you never slept", "never sleep", "sleep science", "DEC2", "Randy Gardner", "short sleeper", "animation", "buh essays"],
+    "title": "You Were Born Awake",
+    "alt_titles": [
+      "What If You Never Had to Sleep?",
+      "What If You Got Back the 26 Years You Spend Asleep?"
+    ],
+    "description": [
+      "What if you never had to sleep? Not once, from the night you're born. One life, told from the first lullaby to the last.",
+      "The math: a third of a life is asleep, about 26 years by 80. Never sleep and by 30 you've had 87,600 extra waking hours, ten years. And if your mom is 25 years older and sleeps a third of hers, you've both been awake for the same number of hours when you turn 50.",
+      "What's real: nobody can live without sleep. Randy Gardner stayed awake 264 hours (11 days) over New Year's 1964 for a high-school science fair, and he was hallucinating by day four. In Rechtschaffen's lab, rats deprived of all sleep died or were near death within 11 to 32 days. Some families do thrive on less: in 2009 a mother and daughter with a DEC2 variant slept about 6¼ hours a night and woke rested, though a 2022 study of 191,929 people didn't find the effect more widely. Dolphins sleep one half of the brain at a time, and frigatebirds nap in flight, about 40 minutes a day.",
+      "Would you take the 26 years? Tell me in the comments, and tell me which what-if to do next.",
+      "Sources:\n{sources}"
+    ],
+    "sources": [
+      "NPR (2024), Lessons from sleeplessness: the 60th anniversary of Randy Gardner's record. https://www.npr.org/transcripts/1227217274",
+      "Guinness World Records (2023), What's the limit to how long a human can stay awake? https://www.guinnessworldrecords.com/news/2023/1/whats-the-limit-to-how-long-a-human-can-stay-awake-733188",
+      "Everson, Bergmann & Rechtschaffen (1989), Sleep deprivation in the rat: III. Total sleep deprivation. Sleep 12:13. https://pubmed.ncbi.nlm.nih.gov/2928622/",
+      "He Y. et al. (2009), The transcriptional repressor DEC2 regulates sleep length in mammals. Science 325:866. https://doi.org/10.1126/science.1174443",
+      "Weedon M. N. et al. (2022), PLoS Genetics: reported short-sleep variants (DEC2, ADRB1, GRM1) studied in 191,929 people. https://pubmed.ncbi.nlm.nih.gov/36137075/",
+      "Rattenborg N. C. et al. (2016), Evidence that birds sleep in mid-flight. Nature Communications 7:12468. https://pmc.ncbi.nlm.nih.gov/articles/PMC4976198/"
+    ],
+    "hashtags": [
+      "#whatif",
+      "#sleep",
+      "#science"
+    ],
+    "tags": [
+      "what if",
+      "what if you never slept",
+      "never sleep",
+      "sleep science",
+      "DEC2",
+      "Randy Gardner",
+      "short sleeper",
+      "animation",
+      "buh essays"
+    ],
     "pinned": "Would you take the 26 extra years, knowing everyone you love would be asleep for a third of them?"
   }
 }

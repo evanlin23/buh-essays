@@ -1,0 +1,25 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Kitchen set test</title><link rel="stylesheet" href="../lib/stage.css"></head>
+<body><div id="stage"></div>
+<script src="../lib/stage.js"></script><script src="../lib/kit.js"></script><script src="../lib/sets/kitchen.js"></script>
+<script>
+/* Test card for K.loc.kitchen: t = 0 day, 1 dusk, 2 night, with the kettle on (long format).
+ * #short renders the vertical framing: t = 0 stove, 1 sink, 2 table, 3 fridge. */
+const short = location.hash === "#short";
+K.init({ format: short ? "short" : "long" });
+const w = K.world(K.stage);
+const kitchen = K.loc.kitchen(w, { cast: [
+  { x: 700, shirt: "#e4572e", hair: "#3a2a22", hairStyle: "curly" },                          // at the stove
+  { seat: 1, shirt: "#2a9d8f", hair: "#2a1f1d", hairStyle: "bun" },                             // seated at the table
+  { x: 1240, s: 0.85, hs: 1.35, shirt: "#f2b134", hair: "#6b3d24", hairStyle: "bob" },          // child by the counter
+] });
+const A = kitchen.anchors;
+const shots = [A.stove, A.sink, A.table, A.fridge];
+K.finish((t) => {
+  const i = Math.max(0, Math.min(3, Math.round(t)));
+  w.camera(short ? { x: shots[i].x, y: 560, z: 1 } : { x: 960, y: 540, z: 1 });
+  const k = short ? [0, 0.5, 1, 0.25][i] : Math.min(1, t / 2);
+  kitchen.update(t, { sky: k, flame: 1, steam: 1, clock: 7 * 60 + 40 + t * 7.5 * 60,
+    cast: [{ look: -1, armF: -40 }, { look: -0.6, armB: 34, armF: 12 }, { look: 1 }] });
+}, 4);
+</script></body></html>

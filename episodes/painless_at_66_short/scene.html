@@ -1,0 +1,127 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Painless at 66 (Short)</title>
+<link rel="stylesheet" href="../../whatif/lib/stage.css">
+</head>
+<body>
+<div id="stage"></div>
+<script src="../../whatif/lib/stage.js"></script>
+<script src="../../whatif/lib/kit.js"></script>
+<script src="../../whatif/lib/sets/kitchen.js"></script>
+<script src="vo.js"></script>
+<script>
+/* What if you'd never felt pain, and didn't find out until 66? Vertical Short. Lines = narration.txt. */
+const { lerp, clamp, seg, ease, spring, svg, html } = PT;
+K.init({ format: "short" });
+const V = K.vo, L = (i) => V.line(i), LE = (i) => V.lineEnd(i);
+const T = {
+  banner: L(0) - 0.05, bannerOut: LE(0) + 0.35, burn: L(1), smell: V.at(1, "smell"), cut: L(2), heal: V.at(2, "heals"),
+  calm: L(3), turnA: L(4) - 0.3, hip: L(4), para: V.at(4, "paracetamol"), hand: L(5), same: V.at(5, "same"), ask: L(6),
+  real: L(7) - 0.2, jo: V.at(7, "jo"), dna: L(8), gap: V.at(8, ["faah", "faahout"]), killer: L(9), test: L(10), zero: V.at(10, "zero"), q: L(11),
+};
+T.turnB = T.turnA + 0.8;
+T.end = LE(11) + 1.9;
+
+/* ---- the kitchen */
+const world = K.world(K.stage);
+const kit = K.loc.kitchen(world, { cast: [{ x: 0, shirt: "#e4572e", hair: "#9a948c", hairStyle: "bob" }] });
+const st = kit.anchors.stove, you = kit.people[0].p;
+// the set's blurred foreground plant is lovely at 16:9 but fills half a vertical frame: leave it out of this Short
+world.root.querySelectorAll('[filter="url(#dof)"]').forEach((e) => { const l = e.closest(".layer"); if (l) l.style.display = "none"; });
+const props = world.layer(1.02);
+const smoke = [0, 1, 2, 3].map(() => svg("circle", { r: 12, fill: "#cfc6b8", opacity: 0 }, props));
+const knife = svg("g", { filter: "url(#lift)", opacity: 0 }, props);
+svg("rect", { x: st.x - 430, y: st.y + 70, width: 120, height: 14, rx: 6, fill: "#cfd6dc" }, knife);
+svg("rect", { x: st.x - 310, y: st.y + 68, width: 60, height: 18, rx: 6, fill: "#5e3829" }, knife);
+const cutMark = svg("path", { d: "M -10 0 L 10 -4", stroke: "#c7361b", "stroke-width": 4, "stroke-linecap": "round", opacity: 0 }, props);
+const cam = K.keys([[0, { x: st.x - 80, y: 560, z: 1.0 }], [T.burn, { x: st.x - 60, y: 600, z: 1.2 }], [T.cut, { x: st.x - 220, y: 640, z: 1.3 }], [T.calm, { x: st.x - 120, y: 600, z: 1.1 }], [T.turnB, { x: st.x - 120, y: 600, z: 1.14 }]]);
+
+/* ---- HUD: two counters that never move */
+const hud = K.hud();
+const banner = K.banner(hud, ["What if you'd", "*never felt pain?*"], { x: 60, y: 70, w: 960, size: 100 });
+const tPain = K.ticket(hud, { x: 70, y: 150, w: 440, label: "PAIN", sub: "out of 10", digits: 1 });
+const tWorry = K.ticket(hud, { x: 570, y: 150, w: 440, label: "WORRY", sub: "out of 21", digits: 1 });
+const say1 = K.say(hud, "You smell it first.", { y: 1290, size: 72 });
+const say2 = K.say(hud, "It heals fast.", { y: 1290, size: 72 });
+banner.cues(T.banner, T.bannerOut); K.cue(T.burn + 0.35, "flap"); K.cue(T.calm, "flap");
+say1.cues(T.smell); say2.cues(T.heal);
+
+/* ---- riso: the X-rays and the doctors' questions */
+const page = K.riso.page(K.stage, { header: "What if you'd never felt pain?  ·  the operations", page: "1" });
+const xr = svg("svg", { width: 1080, height: 1920, viewBox: "0 0 1080 1920", style: "position:absolute;inset:0" }, page.inner);
+const xg = svg("g", { filter: "url(#ink)", opacity: 0 }, xr);
+// a hip: pelvis wing, socket, femur, with the replacement joint in pink
+svg("path", { d: "M 210 330 Q 330 240 470 300 Q 520 340 500 420 Q 470 470 400 480 Q 300 470 250 430 Q 190 390 210 330 Z", fill: "url(#dotsBlue)", class: "mul" }, xg);
+svg("path", { d: "M 470 470 Q 560 470 600 520 L 640 900 Q 642 930 612 936 L 572 936 Q 548 930 546 900 L 520 560 Q 470 520 470 470 Z", fill: "url(#dotsBlue)", class: "mul" }, xg);
+svg("circle", { cx: 470, cy: 470, r: 46, fill: "#ff48b0", opacity: 0.75, class: "mul" }, xg);
+svg("path", { d: "M 470 470 L 590 700", stroke: "#ff48b0", "stroke-width": 22, "stroke-linecap": "round", opacity: 0.75, class: "mul" }, xg);
+const hipLab = K.riso.text(page.inner, "Age 65: <em>new hip.</em>", { x: 640, y: 330, w: 400, size: 66, cls: "risoT blue" });
+const pill = K.riso.text(page.inner, "Painkillers needed: paracetamol.", { x: 640, y: 520, w: 380, size: 34 });
+const handLab = K.riso.text(page.inner, "Age 66: <em>hand surgery.</em> Same thing.", { x: 120, y: 1010, w: 860, size: 66, cls: "risoT blue" });
+const qs = [[180, 1280, 150], [430, 1240, 190], [700, 1300, 140], [880, 1210, 120]].map(([x, y, sz]) => K.riso.text(page.inner, "?", { x, y, w: 200, size: sz, cls: "risoT pink" }));
+
+/* ---- what's real */
+const card = K.riso.card(K.stage, { x: 50, y: 120, w: 980, h: 1690 });
+card.el.style.zIndex = 5;   // above the director's worlds
+const kick = K.riso.text(card.el, "This is real", { x: 70, y: 80, w: 860, size: 30, cls: "riso-label" });
+const who = K.riso.text(card.el, "Jo Cameron, <em>Scotland.</em>", { x: 64, y: 150, w: 880, size: 96, cls: "risoT blue" });
+const helix = K.riso.helix(card.el, { x0: 70, x1: 910, cy: 520, hi: 12, label: "FAAH-OUT", sub: "a tiny piece missing" });
+const killer = K.riso.text(card.el, "More of the body's own painkiller, <em>anandamide.</em>", { x: 70, y: 820, w: 860, size: 46 });
+const zero = K.riso.bignum(card.el, { x: 60, y: 940, size: 240, digits: 1, unit: "/ 21", unitSize: 120 });
+const zeroLab = K.riso.text(card.el, "her score on a standard anxiety test (GAD-7)", { x: 70, y: 1200, w: 860, size: 30, cls: "riso-label" });
+const ask = K.riso.text(card.el, "Would you <em>give up pain?</em>", { x: 64, y: 1290, w: 880, size: 84, cls: "risoT blue" });
+
+const D = K.director([
+  { t: 0, el: world.root, kind: "story" },
+  { t: T.turnA, el: page.root, kind: "riso", enter: "turn" },
+]);
+D.cues();
+card.cues(T.real); K.cue(T.hip + 0.3, "draw", { dur: 0.8 }); K.cue(T.para, "stamp", { soft: 1 }); K.cue(T.hand, "stamp");
+qs.forEach((_, i) => K.cue(T.ask + 0.25 * i, "pop"));
+helix.cues(T.dna, T.gap - 0.1); K.cue(T.killer, "stamp", { soft: 1 }); K.cue(T.zero, "chime"); K.cue(T.q, "stamp");
+
+K.finish((t) => {
+  const { shot } = D.at(t);
+  if (shot.el === world.root) {
+    world.camera(cam(t));
+    const reach = ease.inOutSine(seg(t, T.burn, T.burn + 0.6)) * (1 - ease.inOutSine(seg(t, T.cut - 0.4, T.cut)));
+    kit.update(t, { sky: 0.15, flame: clamp((t - T.burn + 0.6) / 0.3), steam: clamp((t - T.burn) / 0.6), clock: 18 * 60 + 20, cast: [
+      { x: st.x - 150 - 160 * ease.inOutSine(seg(t, T.cut - 0.3, T.cut + 0.3)), y: 930, s: 1.3, armF: lerp(-9, -52, reach),
+        look: t > T.smell && t < T.cut ? 0.7 : 0, head: t > T.smell && t < T.cut ? 8 : 0, mouth: t > T.smell && t < T.cut ? "o" : "smile",
+        brow: t > T.smell && t < T.cut ? 8 : 0, blink: K.blink(t, T.turnA) },
+    ] });
+    // smoke curls off the arm: you smell it before you notice it
+    const sx = st.x - 150 + 120, sy = 930 - 1.3 * 150;
+    smoke.forEach((c, i) => {
+      const p = ((t - T.burn - 0.6) * 0.5 + i / 4) % 1, on = t > T.burn + 0.6 && t < T.cut ? 1 : 0;
+      c.setAttribute("cx", sx + 14 * Math.sin(p * 9 + i)); c.setAttribute("cy", sy - 140 * p); c.setAttribute("r", 8 + 16 * p);
+      c.setAttribute("opacity", (on * 0.6 * Math.sin(Math.PI * Math.max(0, p))).toFixed(2));
+    });
+    knife.setAttribute("opacity", t > T.cut - 0.3 ? 1 : 0);
+    const cx = st.x - 310 + 26, cy = 930 - 1.3 * 128;
+    cutMark.setAttribute("transform", `translate(${cx} ${cy})`);
+    cutMark.setAttribute("opacity", t > T.cut + 0.4 ? clamp(1 - (t - T.heal) / 0.9) : 0);
+  }
+  banner.at(t, T.banner, T.bannerOut);
+  const onStory = shot.el === world.root ? "visible" : "hidden";
+  tPain.el.style.visibility = tWorry.el.style.visibility = onStory;
+  tPain.at(t, T.burn + 0.35, 0, 0); tWorry.at(t, T.calm, 0, 0);
+  say1.at(t, T.smell, T.cut - 0.3); say2.at(t, T.heal, T.calm - 0.2);
+  if (shot.el === page.root) {
+    page.drift(t, T.turnA, T.end);
+    xg.setAttribute("opacity", clamp((t - T.hip - 0.3) / 0.6));
+    hipLab.at(t, T.hip + 0.2); pill.at(t, T.para); handLab.at(t, T.hand);
+    qs.forEach((q, i) => q.at(t, T.ask + 0.25 * i));
+  }
+  card.at(t, T.real);
+  kick.at(t, T.real + 0.3); who.at(t, T.jo - 0.1);
+  helix.at(t, T.dna, T.gap - 0.1);
+  killer.at(t, T.killer);
+  zero.at(t, T.test, 0, T.zero); zeroLab.at(t, T.test + 0.3);
+  ask.at(t, T.q);
+}, T.end);
+</script>
+</body>
+</html>

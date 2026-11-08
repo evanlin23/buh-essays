@@ -66,8 +66,8 @@ And for the first time in eighty years, you wish you could follow her. {#follow}
 ## What's real
 So, what's real? {#real}
 Nobody can live without sleep. {#nobody}
-In 1964, a seventeen-year-old named Randy Gardner stayed awake for eleven days for a science fair. By the end, he was seeing things. {#gardner}
-Rats kept awake in a lab died within weeks. {#rats}
+Over New Year's 1964, a seventeen-year-old named Randy Gardner stayed awake for eleven days, for a science fair. By day four, he was seeing things. {#gardner}
+Rats kept awake in a lab were dead or dying within a few weeks. {#rats}
 But some people really are built for less. {#less}
 In 2009, scientists found a mother and daughter with a tiny change in a gene called DEC2. They wake up rested after about six hours. {#dec2}
 Dolphins sleep with one half of their brain at a time. Frigatebirds nap while they fly. {#animals}

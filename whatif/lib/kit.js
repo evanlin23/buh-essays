@@ -765,10 +765,10 @@
     };
   };
   /* Big two-ink number with a unit word. set(v) */
-  K.riso.bignum = (parent, { x, y, size = 330, digits = 2, unit = "", unitSize = 132 }) => {
+  K.riso.bignum = (parent, { x, y, size = 330, digits = 2, unit = "", unitSize = 132, commas = false }) => {
     const wrap = html("div", { style: { position: "absolute", left: x + "px", top: y + "px", height: size + "px", transformOrigin: "0 60%" } }, parent);
-    const p = PT.odometer(wrap, { digits, size, color: PINK, commas: false, style: { position: "absolute", left: "9px", top: "7px", mixBlendMode: "multiply" } });
-    const b = PT.odometer(wrap, { digits, size, color: BLUE, commas: false, style: { position: "absolute", left: "0px", top: "0px", mixBlendMode: "multiply" } });
+    const p = PT.odometer(wrap, { digits, size, color: PINK, commas, style: { position: "absolute", left: "9px", top: "7px", mixBlendMode: "multiply" } });
+    const b = PT.odometer(wrap, { digits, size, color: BLUE, commas, style: { position: "absolute", left: "0px", top: "0px", mixBlendMode: "multiply" } });
     [p, b].forEach((o) => (o.box.style.fontFamily = "Fraunces"));
     const u = unit ? html("div", { class: "risoT blue", text: unit, style: { position: "absolute", left: x + digits * size * 0.62 + 20 + "px", top: y + size * 0.45 + "px", fontSize: unitSize + "px" } }, parent) : null;
     return {

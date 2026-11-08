@@ -1,0 +1,27 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Street set test</title><link rel="stylesheet" href="../lib/stage.css"></head>
+<body><div id="stage"></div>
+<script src="../lib/stage.js"></script><script src="../lib/kit.js"></script><script src="../lib/sets/street.js"></script>
+<script>
+/* Test card for K.loc.street.
+ * Long (default): t = 0 dusk, most windows lit, the taxi passing; 1 blue hour, half the lights out; 2 deep night,
+ * only the TV and a few windows left, the diner still open.
+ * #short: the vertical framing visits the anchors: t = 0 diner, 1 lamp, 2 windows, 3 bench, 4 diner with the taxi. */
+const SHORT = location.hash === "#short";
+K.init({ format: SHORT ? "short" : "long" });
+const w = K.world(K.stage);
+const B = { x: 340, y: 905, s: 1.05 };
+const street = K.loc.street(w, { cast: [
+  { x: B.x, y: B.y, s: B.s, sit: 1, shirt: "#5aa9e6", hair: "#e9e4da", hairStyle: "thin", glasses: true },   // waiting for the night bus
+  { x: 800, shirt: "#e4572e", hair: "#3a2a22", hairStyle: "curly" },                                       // you, awake
+] });
+const A = street.anchors;
+const shots = [A.diner, A.lamp, A.windows, { x: A.bench.x, y: 600, z: 1.1 }, A.diner];
+const SKY = [0, 0.6, 1, 1, 1], LIGHTS = [0.92, 0.5, 0.06, 0.2, 0.06], CAR = [0.35, 0, 0, 0, 0.6];
+K.finish((t) => {
+  const i = Math.min(4, Math.round(t)), L = SHORT ? i : Math.min(2, i);
+  w.camera(SHORT ? shots[i] : { x: 960, y: 540, z: 1 });
+  street.update(t, { sky: SKY[L], lights: LIGHTS[L], car: CAR[L] && CAR[L] + 0.12 * (t - i),
+    cast: [{ head: -3, look: 1, sleep: L === 2 }, { look: -1, mouth: L >= 2 ? "flat" : "smile", brow: L >= 2 ? 5 : 0 }] });
+}, 5);
+</script></body></html>
