@@ -173,6 +173,9 @@ def qa(E):
 
 
 def package(E):
+    # upload copy: visually lossless for YouTube's re-encode, a fraction of the CRF 14 master's size
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", os.path.join(E["out"], "video.mp4"), "-c:v", "libx264", "-preset", "slow", "-crf", "19", "-maxrate", "24M", "-bufsize", "48M",
+                    "-pix_fmt", "yuv420p", "-c:a", "copy", "-movflags", "+faststart", os.path.join(E["out"], "upload.mp4")], check=True)
     node(os.path.join(E["dir"], "scene.html"), os.path.join(E["out"], "cover"), "--stills", str(E.get("cover_t", 1.5)))
     cov = [f for f in os.listdir(os.path.join(E["out"], "cover")) if f.endswith(".png")][0]
     os.replace(os.path.join(E["out"], "cover", cov), os.path.join(E["out"], "cover.png"))
@@ -182,10 +185,12 @@ def package(E):
     tags = ", ".join(P.get("tags", []))
     md = f"""# Upload kit: {E['slug']}
 
-**Format:** {E.get('format', 'short')} · **File:** `renders/{E['slug']}/video.mp4` · **Cover:** `renders/{E['slug']}/cover.png`
+**Format:** {E.get('format', 'short')} · **File:** `renders/{E['slug']}/upload.mp4` · **Cover:** `renders/{E['slug']}/cover.png`
 
 ## Title
 {P['title']}
+
+Alternative titles: {' · '.join(P.get('alt_titles', [])) or 'none'}
 
 ## Description
 {desc}

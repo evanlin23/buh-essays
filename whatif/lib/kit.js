@@ -256,6 +256,81 @@
     return { update, anchors, you: youP };
   };
 
+  /* Park at dusk (or day/night): sky, sun or moon, paper clouds, hills, trees, a path, a bench and a lamp post.
+   * cast: [{x, y?, s?, shirt, hair, hairStyle, glasses}] puppets standing on the path (y defaults to 930).
+   * update(t, {sky: 0..1 (0 day, 0.5 dusk, 1 night), lamp: 0..1, cast: [pose overrides]}) */
+  K.loc.park = (w, { cast = [] } = {}) => {
+    const id = K.uid("park");
+    w.defs.innerHTML += `
+      <linearGradient id="${id}day" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fc4e8"/><stop offset="1" stop-color="#f6e4c4"/></linearGradient>
+      <linearGradient id="${id}dusk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6d5a9c"/><stop offset="0.55" stop-color="#e98f7a"/><stop offset="1" stop-color="#ffd59a"/></linearGradient>
+      <linearGradient id="${id}night" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0e152d"/><stop offset="1" stop-color="#2b3a66"/></linearGradient>
+      <radialGradient id="${id}sun"><stop offset="0" stop-color="#fff3c9" stop-opacity="0.9"/><stop offset="1" stop-color="#ffb46b" stop-opacity="0"/></radialGradient>
+      <radialGradient id="${id}lamp"><stop offset="0" stop-color="#ffd890" stop-opacity="0.9"/><stop offset="1" stop-color="#ffb45e" stop-opacity="0"/></radialGradient>`;
+    const S = w.layer(0.25);
+    const skies = ["day", "dusk", "night"].map((k) => svg("rect", { x: -900, y: -600, width: 3720, height: 2280, fill: `url(#${id}${k})`, filter: k === "day" ? "url(#card0)" : "none" }, S));
+    const sunG = svg("circle", { cx: 1400, cy: 640, r: 420, fill: `url(#${id}sun)` }, S);
+    const sun = svg("circle", { cx: 1400, cy: 640, r: 96, fill: "#ffd27a", filter: "url(#card1)" }, S);
+    const moon = svg("circle", { cx: 520, cy: 260, r: 70, fill: "#f3e7c4", filter: "url(#card1)" }, S);
+    const starsG = svg("g", {}, S);
+    const r = PT.rng(7);
+    for (let i = 0; i < 40; i++) svg("circle", { cx: -600 + r() * 3100, cy: -300 + r() * 900, r: 1.5 + r() * 2.5, fill: "#f6ecd9" }, starsG);
+    const clouds = w.layer(0.35);
+    const cl = [[300, 200, 1.2], [1100, 150, 1], [1700, 260, 1.3], [-200, 300, 0.9], [2300, 180, 1.1]].map(([x, y, s]) => {
+      const g = svg("g", { filter: "url(#card1)" }, clouds);
+      svg("path", { d: "M -110 30 Q -100 -10 -60 -6 Q -40 -44 6 -34 Q 40 -60 76 -24 Q 116 -24 116 30 Z", fill: "#f6d7c6" }, g);
+      return { g, x, y, s };
+    });
+    const H1 = w.layer(0.5);
+    svg("path", { d: "M -900 760 Q -300 620 200 700 T 1000 660 T 1800 690 T 2800 670 V 1700 H -900 Z", fill: "#8b6aa0", filter: "url(#card2)" }, H1);
+    const H2 = w.layer(0.7);
+    svg("path", { d: "M -900 840 Q -200 740 500 800 T 1500 770 T 2800 800 V 1700 H -900 Z", fill: "#5f7f63", filter: "url(#card2)" }, H2);
+    const tree = (layer, x, y, s) => {
+      const g = svg("g", { filter: "url(#card2)", transform: `translate(${x} ${y}) scale(${s})` }, layer);
+      svg("rect", { x: -9, y: -110, width: 18, height: 112, rx: 5, fill: "#5e3829" }, g);
+      svg("circle", { cx: 0, cy: -150, r: 70, fill: "#3f6b4e" }, g);
+      svg("circle", { cx: -38, cy: -118, r: 46, fill: "#46775a" }, g);
+      svg("circle", { cx: 40, cy: -124, r: 50, fill: "#3a6248" }, g);
+      return g;
+    };
+    [[-300, 800, 1.1], [180, 790, 0.9], [1650, 780, 1.2], [2150, 795, 1.0]].forEach(([x, y, s]) => tree(H2, x, y, s));
+    const G = w.layer(0.88);
+    svg("path", { d: "M -900 900 Q 300 860 1000 880 T 2800 870 V 1700 H -900 Z", fill: "#7fa06b", filter: "url(#card2)" }, G);
+    svg("path", { d: "M -900 950 Q 400 915 1000 935 T 2800 930 V 1010 Q 1600 990 1000 1000 T -900 1010 Z", fill: "#d9c3a0", filter: "url(#card1)" }, G);
+    for (let i = 0; i < 60; i++) svg("path", { d: `M ${i * 64 - 900} ${1040 + (i % 3) * 22} q 6 -18 12 0 q 6 -14 12 0`, stroke: "#6a8c58", "stroke-width": 4, fill: "none", "stroke-linecap": "round" }, G);
+    const bench = svg("g", { filter: "url(#card2)" }, G);
+    svg("rect", { x: 1180, y: 830, width: 300, height: 18, rx: 6, fill: "#7b4a36" }, bench);
+    svg("rect", { x: 1180, y: 790, width: 300, height: 14, rx: 6, fill: "#7b4a36" }, bench);
+    svg("rect", { x: 1196, y: 848, width: 14, height: 70, fill: "#3b2a22" }, bench);
+    svg("rect", { x: 1450, y: 848, width: 14, height: 70, fill: "#3b2a22" }, bench);
+    const post = svg("g", { filter: "url(#card2)" }, G);
+    svg("rect", { x: 1588, y: 560, width: 14, height: 360, fill: "#2b2f45" }, post);
+    svg("path", { d: "M 1560 560 L 1630 560 L 1615 510 L 1575 510 Z", fill: "#2b2f45" }, post);
+    const bulb = svg("circle", { cx: 1595, cy: 548, r: 12, fill: "#ffe3a8" }, post);
+    const P = w.layer(1.0);
+    const people = cast.map((c) => ({ c, p: PT.puppet(P, { shirt: c.shirt, hair: c.hair, hairStyle: c.hairStyle || "short", glasses: c.glasses }) }));
+    const Lg = w.layer(0.88, { mixBlendMode: "screen" });
+    const lampGlow = svg("circle", { cx: 1595, cy: 560, r: 380, fill: `url(#${id}lamp)`, opacity: 0 }, Lg);
+    w.overlay("vignette");
+    return {
+      people,
+      anchors: { bench: { x: 1330, y: 700 }, lamp: { x: 1595, y: 640 }, sky: { x: 960, y: 300 } },
+      update(t, s = {}) {
+        const k = s.sky ?? 0.5;
+        skies[0].setAttribute("opacity", 1);
+        skies[1].setAttribute("opacity", clamp(k * 2));
+        skies[2].setAttribute("opacity", clamp(k * 2 - 1));
+        const sunY = 640 + 420 * clamp(k * 1.4 - 0.2);
+        sun.setAttribute("cy", sunY); sunG.setAttribute("cy", sunY);
+        moon.setAttribute("opacity", clamp(k * 2 - 1)); starsG.setAttribute("opacity", clamp(k * 2.2 - 1.2));
+        cl.forEach((c, i) => c.g.setAttribute("transform", `translate(${c.x + ((t * (8 + i * 3)) % 400) - 200} ${c.y}) scale(${c.s})`));
+        const lamp = s.lamp ?? clamp(k * 2 - 0.9);
+        lampGlow.setAttribute("opacity", 0.75 * lamp); bulb.setAttribute("fill", lamp > 0.2 ? "#fff1c2" : "#d9cfb6");
+        people.forEach(({ c, p }, i) => p.pose(Object.assign({ x: c.x, y: c.y ?? 930, s: c.s ?? 1.3, hs: c.hs ?? 1, bob: 1.8 * Math.sin(t * 1.9 + i), armF: -9, armB: 9, blink: K.blink(t, 1e9, 1.2 + i * 0.7) }, (s.cast || [])[i] || {})));
+      },
+    };
+  };
+
   /* blinks every 2.3-3.4 s until `until` */
   K.blink = (t, until = 1e9, start = 1.9) => {
     let best = 0;
@@ -543,6 +618,43 @@
       },
     };
   };
+  /* Two (or more) quantities over time, drawn left to right as the narration goes, labels riding the line heads.
+   * series: [{label, color: "blue"|"pink", f: (x) => y}]; at(t, tA, tB) draws x from 0 to xMax between tA and tB. */
+  K.riso.lines = (parent, { x, y, w, h, xMax, yMax, xLabel = "", yTicks = [], xTicks = [], series }) => {
+    const s = svg("svg", { width: K.W, height: K.H, viewBox: `0 0 ${K.W} ${K.H}`, style: "position:absolute;inset:0" }, parent);
+    const X = (v) => x + (v / xMax) * w, Y = (v) => y + h - (v / yMax) * h;
+    const ax = svg("g", { stroke: BLUE, "stroke-width": 2.5, fill: "none", class: "mul", filter: "url(#ink)" }, s);
+    svg("path", { d: `M ${x} ${y} V ${y + h} H ${x + w}` }, ax);
+    const txt = (tx, ty, str, anchor = "middle") => { const e = svg("text", { x: tx, y: ty, "text-anchor": anchor, "font-family": "Bricolage", "font-weight": 700, "font-size": 22, fill: BLUE, stroke: "none" }, ax); e.textContent = str; };
+    xTicks.forEach((v) => { svg("path", { d: `M ${X(v)} ${y + h} v 12` }, ax); txt(X(v), y + h + 40, v); });
+    yTicks.forEach((v) => { svg("path", { d: `M ${x} ${Y(v)} h -12` }, ax); txt(x - 20, Y(v) + 8, v, "end"); });
+    if (xLabel) html("div", { class: "riso-label", text: xLabel, style: { position: "absolute", left: x + "px", width: w + "px", textAlign: "center", top: y + h + 56 + "px", fontSize: "20px" } }, parent);
+    const S = series.map((q) => {
+      const pink = q.color === "pink";
+      const path = svg("path", { fill: "none", stroke: pink ? PINK : BLUE, "stroke-width": 9, "stroke-linecap": "round", "stroke-linejoin": "round", class: "mul" }, s);
+      const dot = svg("circle", { r: 13, fill: pink ? PINK : BLUE, class: "mul" }, s);
+      const lab = html("div", { class: "riso-num", style: { position: "absolute", fontSize: "36px", color: pink ? PINK : BLUE, whiteSpace: "nowrap" } }, parent);
+      return { ...q, path, dot, lab };
+    });
+    return {
+      at(t, tA, tB, fmt = (q, xv, yv) => `${q.label} ${Math.round(yv)}`) {
+        const xe = xMax * ease.inOutSine(seg(t, tA, tB));
+        S.forEach((q) => {
+          let d = "";
+          for (let k = 0; k <= 80; k++) { const xv = (xe * k) / 80; d += (k ? "L" : "M") + X(xv).toFixed(1) + " " + Y(q.f(xv)).toFixed(1); }
+          q.path.setAttribute("d", d);
+          const yv = q.f(xe);
+          q.dot.setAttribute("cx", X(xe)); q.dot.setAttribute("cy", Y(yv));
+          q.lab.textContent = fmt(q, xe, yv);
+          q.lab.style.left = X(xe) + 22 + "px"; q.lab.style.top = Y(yv) - 24 + "px";
+          const vis = t >= tA ? 1 : 0;
+          [q.path, q.dot].forEach((e) => e.setAttribute("opacity", vis)); q.lab.style.opacity = vis;
+        });
+      },
+      cues(tA, tB) { K.cue(tA, "draw", { dur: tB - tA }); },
+    };
+  };
+
   /* Plain riso text block that fades and lifts in. */
   K.riso.text = (parent, text, { x, y, w, size = 48, cls = "riso-body", align = "left" }) => {
     const el = html("div", { class: cls, html: text, style: { position: "absolute", left: x + "px", top: y + "px", width: w + "px", fontSize: size + "px", lineHeight: 1.18, textAlign: align, opacity: 0 } }, parent);

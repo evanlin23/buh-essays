@@ -1,0 +1,15 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Park set test</title><link rel="stylesheet" href="../lib/stage.css"></head>
+<body><div id="stage"></div>
+<script src="../lib/stage.js"></script><script src="../lib/kit.js"></script>
+<script>
+/* Test card for K.loc.park: t = 0 day, 1 dusk, 2 night (long format); ?short renders the vertical framing. */
+K.init({ format: location.hash === "#short" ? "short" : "long" });
+const w = K.world(K.stage);
+const park = K.loc.park(w, { cast: [
+  { x: 1060, shirt: "#e4572e", hair: "#3a2a22", hairStyle: "curly" },
+  { x: 1300, s: 0.85, hs: 1.35, shirt: "#f2b134", hair: "#6b3d24", hairStyle: "bob" },
+  { x: 1760, shirt: "#7b4b94", hair: "#e9e4da", hairStyle: "thin", glasses: true },
+] });
+K.finish((t) => { w.camera({ x: 1200, y: 600, z: 1 }); park.update(t, { sky: t / 2 }); }, 3);
+</script></body></html>
