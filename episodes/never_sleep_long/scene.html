@@ -228,11 +228,19 @@ hosp.beats && hosp.beats(G("age75") - 0.2, G("grand") - 0.2, 64).forEach((b) => 
 
 /* ---------------------------------------------------------------- seek */
 K.finish((t) => {
-  const { shot } = D.at(t);
-  const el = shot.el, age = ageAt(t);
+  const { shot, i: si, u: su } = D.at(t);
+  const age = ageAt(t);
   updateHair(age);
-  const B = bodyFor(age), blink = K.blink(t, 1e9, 1.3);
+  const blink = K.blink(t, 1e9, 1.3);
   const story = shot.kind === "story";
+  // pose the outgoing world too while a transition is on screen, so any frame renders correctly on its own
+  const prevEl = si > 0 && su < 1 && D.shots[si - 1].el !== shot.el ? D.shots[si - 1].el : null;
+  [prevEl, shot.el].filter(Boolean).forEach((el) => poseWorld(el, t, age, blink));
+  hudAt(t, shot, age);
+}, T.end);
+
+function poseWorld(el, t, age, blink) {
+  const B = bodyFor(age);
 
   if (el === wBirth.root) {
     wBirth.camera(camBirth(t));
@@ -342,7 +350,10 @@ K.finish((t) => {
     r5Big.at(t, G("ask"), Math.min(26, n), G("ask2")); r5Sub.at(t, G("ask2")); r5Ask.at(t, G("ask2") + 0.6);
   }
 
-  /* HUD */
+}
+
+function hudAt(t, shot, age) {
+  const el = shot.el, story = shot.kind === "story";
   banner.at(t, G("title"), GE("title") + 0.5);
   const crossing = el === wKit.root && t > shotStart(wKit.root, 2) - 0.01;
   const showHud = story && t > G("rule") && !crossing ? 1 : 0;
@@ -355,7 +366,7 @@ K.finish((t) => {
   tYouH.at(t, crossing ? shotStart(wKit.root, 2) : 1e9, cv, cd);
   tMomH.at(t, crossing ? shotStart(wKit.root, 2) + 0.2 : 1e9, cv, cd);
   Object.entries(caps).forEach(([k, c]) => c.at(t, capT[k][0], capT[k][1]));
-}, T.end);
+}
 </script>
 </body>
 </html>
