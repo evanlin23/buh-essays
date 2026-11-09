@@ -140,6 +140,7 @@ const r2At = K.riso.text(r2.inner, "at 50: <em>even</em>", { x: 1040, y: 470, w:
 // R3: nobody can live without sleep
 const r3 = K.riso.page(K.stage, { header: HEAD + "  ·  what's real", page: "3" });
 const r3T = K.riso.title(r3.inner, ["Nobody can live", "without sleep."], { x: 150, y: 110, size: 104 });
+const r3Kick = K.riso.text(r3.inner, "So, what's real?", { x: 1180, y: 150, w: 680, size: 72, cls: "risoT pink" });
 const r3Big = K.riso.bignum(r3.inner, { x: 150, y: 420, size: 240, digits: 3, unit: "hours", unitSize: 110 });
 const r3Note = K.riso.text(r3.inner, "Randy Gardner, 17: 264 hours (11 days) awake over New Year's 1964. Hallucinations began around day four.", { x: 160, y: 690, w: 900, size: 40 });
 const r3Rats = K.riso.text(r3.inner, "Lab rats kept awake: <em>dead or dying in 11–32 days.</em>", { x: 1160, y: 470, w: 640, size: 64, cls: "risoT blue" });
@@ -220,7 +221,7 @@ banner.cues(G("title"), GE("title") + 0.5);
 K.cue(G("rule"), "flap"); K.cue(G("rule") + 0.2, "flap");
 K.rollCues(G("age30"), GE("age30"), 0, 87600, 2000);
 napkin.cues(G("napkin") + 0.4, GE("predict"));
-r3T.cues([0, 1, 2, 3, 4].map((i) => G("nobody") + 0.22 * i)); K.rollCues(G("gardner"), G("gardner") + 2.2, 0, 264, 8);
+r3T.cues([0, 1, 2, 3, 4].map((i) => G("nobody") + 0.22 * i)); K.cue(G("real") + 0.25, "stamp", { soft: 1 }); K.rollCues(G("gardner"), G("gardner") + 2.2, 0, 264, 8);
 r4T.cues([0, 1, 2, 3, 4, 5].map((i) => G("less") + 0.2 * i)); r4Helix.cues(G("dec2"), GW("dec2", "dec2") - 0.1); r4Bars.cues(GW("dec2", "wake"), GW("dec2", ["six", "6"]));
 r5Grid.cues(G("ask") + 0.3, GE("ask") - 0.2); K.cue(G("ask2"), "chime");
 K.cue(GW("married", "married"), "chime"); K.cue(GW("blanket", "cover"), "flap"); K.cue(GW("crossing", "exactly"), "stamp");
@@ -335,7 +336,7 @@ function poseWorld(el, t, age, blink) {
   }
   if (el === r3.root) {
     r3.drift(t, G("real"), G("less"));
-    r3T.at(t, [0, 1, 2, 3, 4].map((i) => G("nobody") + 0.22 * i));
+    r3T.at(t, [0, 1, 2, 3, 4].map((i) => G("nobody") + 0.22 * i)); r3Kick.at(t, G("real") + 0.25);
     const [g] = K.roll(t, G("gardner"), G("gardner") + 2.2, 0, 264);
     r3Big.at(t, G("gardner") - 0.2, g); r3Note.at(t, G("gardner") + 2.4); r3Rats.at(t, G("rats"));
   }

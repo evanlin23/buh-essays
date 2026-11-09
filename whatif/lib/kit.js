@@ -609,7 +609,11 @@
     if (page) html("div", { class: "riso-num", text: page, style: { position: "absolute", left: "0", width: K.W + "px", textAlign: "center", top: K.H - 62 + "px", fontSize: "26px", opacity: 0.8 } }, inner);
     return {
       root, inner,
-      drift(t, a, b) { const u = ease.inOutSine(seg(t, a, b)); inner.style.transform = `scale(${lerp(1, 1.035, u)}) translate(${lerp(8, -10, u)}px, 0)`; },
+      // the page settles quickly after it lands (no dead air right after a page turn), then keeps drifting slowly
+      drift(t, a, b) {
+        const u = ease.inOutSine(seg(t, a, b)), land = 1 - ease.outCubic(seg(t, a, a + 2.5));
+        inner.style.transform = `scale(${lerp(1, 1.035, u) + 0.03 * land}) translate(${lerp(8, -10, u) - 24 * land}px, ${-10 * land}px)`;
+      },
     };
   };
   /* Two-pass headline: pink a hair out of register under blue, words stamp in at their own times. */

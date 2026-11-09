@@ -187,7 +187,8 @@ def qa(E):
         ("length", f"{dur:.1f} s", dur <= 60 if fmt == "short" else 120 <= dur <= 900),
         ("loudness", f"{lufs:.1f} LUFS", abs(lufs + 14) <= 1),
         ("still frames", f"{100 * still.mean():.1f}%", still.mean() <= 0.10),
-        ("longest hold", f"{best / 24:.2f} s", best / 24 <= 1.0),
+        # Shorts lose viewers in a 1 s lull; long-form can breathe (the reference long-form held up to 6.7 s)
+        ("longest hold", f"{best / 24:.2f} s", best / 24 <= (1.0 if fmt == "short" else 2.0)),
     ]
     ok = all(c[2] for c in checks)
     for name, val, good in checks:
@@ -207,7 +208,7 @@ def load_vo(E):
 
 def package(E):
     # upload copy: visually lossless for YouTube's re-encode, a fraction of the CRF 14 master's size
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", os.path.join(E["out"], "video.mp4"), "-c:v", "libx264", "-preset", "slow", "-crf", "19", "-maxrate", "24M", "-bufsize", "48M",
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", os.path.join(E["out"], "video.mp4"), "-c:v", "libx264", "-preset", "slow", "-crf", "19", "-maxrate", "24M" if E.get("format", "short") == "short" else "12M", "-bufsize", "48M" if E.get("format", "short") == "short" else "24M",
                     "-pix_fmt", "yuv420p", "-c:a", "copy", "-movflags", "+faststart", os.path.join(E["out"], "upload.mp4")], check=True)
     node(os.path.join(E["dir"], "scene.html"), os.path.join(E["out"], "cover"), "--stills", str(E.get("cover_t", 1.5)))
     cov = [f for f in os.listdir(os.path.join(E["out"], "cover")) if f.endswith(".png")][0]
